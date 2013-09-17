@@ -47,7 +47,7 @@ class Item {
       }
    }
 
-   // Construct from DB
+   /** Construct from data from the DB */
    public static function from_db($attrs = array()) {
       $attrs['value']/= 100;
       if (!$attrs['ctype']) {
@@ -57,24 +57,40 @@ class Item {
       return $item;
    }
 
-   // Construct from web form
-   public static function from_html_form($attrs = array(), $DB = false) {
+   public static function new_empty_on($year, $month, $day) {
+      return self::from_raw(array('dayid' => - 1, //
+      'year' => $year, //
+      'month' => $month, //
+      'day' => $day));
+   }
+
+   /** Construct object from raw, possibly incomplete data
+    *
+    * Year, month, day and unixday are calculated from each other.
+    * A new dayid is requested if it is unset, false, or <0, *and* $DB is given.
+    */
+   public static function from_raw($attrs = array(), $DB = false) {
       // accounts -> accountto, accountfrom
       if (isset($attrs['accounts'])) {
          $attrs['accountto'] = substr($attrs['accounts'], 0, 1);
          $attrs['accountfrom'] = substr($attrs['accounts'], 1, 1);
       }
       // fix timespan
-      if ($attrs['timespan'] < 1) {
+      if ((!isset($attrs['timespan'])) || $attrs['timespan'] < 1) {
          $attrs['timespan'] = 1;
       } elseif ($attrs['timespan'] == 30) {
-         $attrs['timespan'] = thirtyone($attrs['month']);
+         $attrs['timespan'] = thirtyone($attrs['month']); // TODO global function
+
       }
       // fix business
-      $attrs['business'] = $attrs['business'] ? 1 : 0;
+      $attrs['business'] = (isset($attrs['business']) && $attrs['business']) ? 1 : 0;
       // fix checked
-      if ($attrs['checked'] == '') {
+      if ((!isset($attrs['checked'])) || $attrs['checked'] == '') {
          $attrs['checked'] = 0;
+      }
+      // fix ctype
+      if ((!isset($attrs['ctype'])) || (!$attrs['ctype'])) {
+         $attrs['ctype'] = 'X';
       }
       // get unixday
       if (!isset($attrs['unixday'])) {
@@ -84,21 +100,18 @@ class Item {
       if (!isset($attrs['year'])) {
          $at = $attrs['unixday'] * 60 * 60 * 24;
          $attrs['year'] = date('Y', $at);
-         $attrs['month'] => date('n', $at);
-         $attrs['day'] => date('j', $at);
+         $attrs['month'] = date('n', $at);
+         $attrs['day'] = date('j', $at);
 
       }
       // get unixdayto
       if (!isset($attrs['unixdayto'])) {
          $attrs['unixdayto'] = $attrs['unixday'] + $attrs['timespan'];
       }
-      // try to get dayid
-      if (!isset($attrs['dayid']) || $attrs['dayid'] === false) {
+      // try to get dayid if $DB is given
+      if (!isset($attrs['dayid']) || $attrs['dayid'] === false || $attrs['dayid'] < 0) {
          if ($DB) {
             $attrs['dayid'] = $DB->get_free_dayid($attrs['unixday']);
-         } else {
-            print ('No dayid and no DB');
-            exit(1);
          }
       }
 
@@ -137,6 +150,44 @@ class Item {
       return $this;
    }
 
+   /** Parses a HTML form submission and updates the DB */
+   public static function parse_html_form($RequestObj, $DB) {
+
+      $oldunixday = $RequestObj->get_int('oldiuday');
+      $dayid = $RequestObj->get_int('oldidayid');
+      $newunixday = $DB->date2unixday( //
+      $RequestObj->get_year('year'), //
+      $RequestObj->get_month('month'), //
+      $RequestObj->get_day('day') //
+      );
+
+      // Always delete modified entry from DB
+      if ($dayid != - 1) {
+         $DB->exec_assert_change( //
+         'DELETE FROM costs WHERE unixday = ? AND dayid = ?', //
+         array($oldunixday, $dayid), //
+         1);
+      }
+
+      if ($dayid != - 1 && $newunixday != $oldunixday) {
+         // if edit, but date has been edited, we need a new dayid
+         $dayid = - 1;
+      }
+
+      self::from_raw(array( //
+      'unixday' => $newunixday, //
+      'dayid' => $dayid, //
+      'name' => $RequestObj->get_string('name'), //
+      'value' => $RequestObj->get_money('value'), //
+      'timespan' => $RequestObj->get_int('fortime'), //
+      'accounts' => $RequestObj->get_value('account'), //
+      'checked' => $RequestObj->get_value('checked'), //
+      'ctype' => $RequestObj->get_value('type'), //
+      'business' => $RequestObj->get_checkbox('business'), //
+      'clong' => $RequestObj->get_value('long') //
+      ), $DB)->store($DB);
+   }
+
    /** Generate HTML form fields based on the item */
    public function to_html_form($DB) {
 
@@ -150,11 +201,6 @@ class Item {
       return (<<<THEEND
 <input type="hidden" name="oldidayid" value="{$this->dayid}">
 <input type="hidden" name="oldiuday" value="{$this->unixday}">
-<!-- // TODO For compatibility -->
-<input type="hidden" name="ino" value="{$this->dayid}">
-<input type="hidden" name="oldev" value="{$this->year}">
-<input type="hidden" name="oldho" value="{$this->month}">
-<input type="hidden" name="oldnap" value="{$this->day}">
 
 <input type="text" name="year" size=2 value="{$this->year}" title="Year"> /
 <input type="text" name="month" size=2 value="{$this->month}" title="Month"> /
