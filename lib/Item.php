@@ -101,14 +101,16 @@ Checked: <select name="checked" title="The item has been checked against the ban
 <br/><br/>
 Business? <input type="checkbox" name="business" $cbusiness title="Business entry?"><br>
 Comment: <textarea rows="5" cols="40" name="long" wrap="off" title="Comment">{$this->clong}</textarea>
-THEEND) ;
+THEEND
+      );
    }
 
    /** Generate a HTML view of the item */
    public function to_html( //
    $FirstChecked, /*< an object or false not to color the first entry */
    $qfocuscheck, // array or false to skip or true to add ID used to move focus
-   $adddate = false /*< bool */) {
+   $adddate = false /*< bool */
+   ) {
       $style_name = '';
       $style_val = '';
       $style_row = '';
@@ -164,15 +166,7 @@ THEEND) ;
 
       // prepare comment
       if ($this->clong) {
-         $comment = str_replace(array(
-            '"',
-            "\n",
-            "\r"
-         ) , array(
-            "'",
-            ' ',
-            ' '
-         ) , $this->clong);
+         $comment = str_replace(array('"', "\n", "\r"), array("'", ' ', ' '), $this->clong);
          $comment = ' <span class="comment" title="' . $comment . '">' . substr($comment, 0, 16) . '</span>';
       }
 
