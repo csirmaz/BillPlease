@@ -22,7 +22,7 @@
 class CostsDB extends SQLBrite {
 
    /** Overrides the error function of SQLBrite */
-   public function error($msg) {
+   public function error($msg) { // TODO Display error message on exception instead
       print ('<html><body>' . $msg . '</body></html>');
       exit(1);
    }
