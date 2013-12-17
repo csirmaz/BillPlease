@@ -67,7 +67,6 @@ class Item extends ItemData {
       'ctype' => $RequestObj->get_value('type'), //
       'business' => $RequestObj->get_checkbox('business'), //
       'clong' => $RequestObj->get_value('long') //
-
       ), $DB)->store($DB);
    }
 
@@ -187,6 +186,16 @@ THEEND
        . '<td class="ch ' . $style_acc . '"><input ' . $check_id . ' class="' . $style_check . '" type="submit" value="' . $this->accountto . $this->accountfrom . '" onclick="chkthis(' . $idx . ')"></td>'
       // type
        . '<td onclick="edt(' . $idx . ')" class="typ' . ($this->ctype != 'X' ? ' t_' . strtolower($this->ctype) . '">' . $this->ctype . '</td>' : '"></td>') . "</tr>\n");
+   }
+
+   public function to_html_line() {
+      $perday = $this->value / $this->timespan;
+      return '<tr><td>' . implode('</td><td>', array($this->year . '-' . $this->month . '-' . $this->day, //
+      $this->name, //
+      printsum($this->value), //
+      printsum($perday * 365 / 12) . '/m ', //
+      printsum($perday) . '/d' //
+      )) . '</td></tr>';
    }
 
 }

@@ -57,6 +57,7 @@ class ItemData {
       return $item;
    }
 
+   /** Alternative constructor */
    public static function new_empty_on($year, $month, $day) {
       return self::from_raw(array('dayid' => - 1, //
       'year' => $year, //
@@ -70,17 +71,11 @@ class ItemData {
     * A new dayid is requested if it is unset, false, or <0, *and* $DB is given.
     */
    public static function from_raw($attrs = array(), $DB = false) {
+
       // accounts -> accountto, accountfrom
       if (isset($attrs['accounts'])) {
          $attrs['accountto'] = substr($attrs['accounts'], 0, 1);
          $attrs['accountfrom'] = substr($attrs['accounts'], 1, 1);
-      }
-      // fix timespan
-      if ((!isset($attrs['timespan'])) || $attrs['timespan'] < 1) {
-         $attrs['timespan'] = 1;
-      } elseif ($attrs['timespan'] == 30) {
-         $attrs['timespan'] = thirtyone($attrs['month']); // TODO global function
-
       }
       // fix business
       $attrs['business'] = (isset($attrs['business']) && $attrs['business']) ? 1 : 0;
@@ -92,6 +87,7 @@ class ItemData {
       if ((!isset($attrs['ctype'])) || (!$attrs['ctype'])) {
          $attrs['ctype'] = 'X';
       }
+
       // get unixday
       if (!isset($attrs['unixday'])) {
          $attrs['unixday'] = CostsDB::date2unixday($attrs['year'], $attrs['month'], $attrs['day']);
@@ -104,10 +100,20 @@ class ItemData {
          $attrs['day'] = date('j', $at);
 
       }
-      // get unixdayto
+
+      // fix timespan (needs month)
+      if ((!isset($attrs['timespan'])) || $attrs['timespan'] < 1) {
+         $attrs['timespan'] = 1;
+      } elseif ($attrs['timespan'] == 30) {
+         $attrs['timespan'] = thirtyone($attrs['month']); // TODO global function
+
+      }
+
+      // get unixdayto (needs timespan)
       if (!isset($attrs['unixdayto'])) {
          $attrs['unixdayto'] = $attrs['unixday'] + $attrs['timespan'];
       }
+
       // try to get dayid if $DB is given
       if (!isset($attrs['dayid']) || $attrs['dayid'] === false || $attrs['dayid'] < 0) {
          if ($DB) {
@@ -116,6 +122,41 @@ class ItemData {
       }
 
       return (new Item($attrs));
+   }
+
+   public function get_unixday() {
+      return $this->unixday;
+   }
+
+   public function get_unixdayto() {
+      return $this->unixdayto;
+   }
+
+   public function get_timespan() {
+      return $this->timespan;
+   }
+
+   public function get_ctype() {
+      return $this->ctype;
+   }
+
+   public function get_clong() {
+      return $this->clong;
+   }
+
+   public function get_clong_as_num() {
+      $v = $this->clong - 0;
+      if ($v == 0) {
+         throw new Exception('Error retrieving long value');
+      }
+      return $v;
+   }
+
+   public function realvalue() {
+      if ($this->accountfrom) {
+         return 0;
+      }
+      return $this->value;
    }
 
    public function store($DB) {
@@ -150,12 +191,6 @@ class ItemData {
       return $this;
    }
 
-   public function realvalue() {
-      if ($this->accountfrom) {
-         return 0;
-      }
-      return $this->value;
-   }
 }
 
 ?>

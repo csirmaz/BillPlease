@@ -25,11 +25,14 @@ class Day {
    private $day;
    private $unixday;
 
+   private $DB;
+
    private $sum;
    private $timedsum;
-   public $items = array(); // TODO for PHP 5.3 only
+   private $items = array();
+   private $longitems = array(); // recurring items affecting this day
 
-   public function __construct($year, $month, $day, $unixday = false) {
+   public function __construct($DB, $year, $month, $day, $unixday = false) {
       $this->year = $year;
       $this->month = $month;
       $this->day = $day;
@@ -37,54 +40,74 @@ class Day {
          $unixday = CostsDB::date2unixday($year, $month, $day);
       }
       $this->unixday = $unixday;
+      $this->DB = $DB;
    }
 
    // Alternative constructor
-   public static function from_unixday($unixday) {
+   public static function from_unixday($DB, $unixday) {
       $ut = $unixday * 24 * 60 * 60;
-      return new Day(date('Y', $ut), date('n', $ut), date('j', $ut), $unixday);
+      return new Day($DB, date('Y', $ut), date('n', $ut), date('j', $ut), $unixday);
    }
 
    public function get_sum() {
-      return $this->sum;
+      $this->load_sums();
+      return $this->sum; // TODO Why not call load_sums? (make DB property)
+
    }
    public function get_timedsum() {
-      return $this->timedsum;
+      $this->load_sums();
+      return $this->timedsum; // TODO Why not call load_sums? (make DB property)
+
    }
    public function get_js_date() {
       return 'new Date(' . $this->year . ',' . ($this->month - 1) . ',' . $this->day . ')';
    }
 
-   public function load_sums($DB) {
+   private function load_sums() {
       if (!isset($this->sum)) {
          // Index: costs_acfr_ud_v
-         $this->sum = $DB->querysingle( // TODO Sum set here and below
+         $this->sum = $this->DB->querysingle( // TODO Sum set here and below
          'select sum(value) from costs where unixday=? and accountfrom=\'\'', array($this->unixday) //
          ) / 100;
       }
       if (!isset($this->timedsum)) {
          // Index: costs_acfr_ud_udt_v_s
-         $this->timedsum = $DB->querysingle( //
+         $this->timedsum = $this->DB->querysingle( //
          'select sum((value*1.0)/timespan) from costs where unixday<=? and unixdayto>? and accountfrom=\'\'', //
          array($this->unixday, $this->unixday) //
          ) / 100;
       }
    }
 
-   public function load_items($DB, $nowday) {
-      $me = $this; // TODO for PHP 5.3 only
+   public function load_items($nowday) {
+      if (count($this->items) > 0) {
+         return;
+      }
       $sum = 0;
-      $DB->query_callback('select * from costs where unixday=?', //
+      $this->DB->query_callback('select * from costs where unixday=? order by dayid', //
       array($this->unixday), //
-      function ($r) use ($me, $nowday, &$sum) {
+      function ($r) use ($nowday, &$sum) {
          $item = Item::from_db($r);
          $item->set_nowday($nowday);
-         $me->items[] = $item;
+         $this->items[] = $item;
          $sum+= $item->realvalue(); // TODO Sum loaded here and above
 
       });
 
       $this->sum = $sum;
+   }
+
+   public function load_long_items($nowday) {
+      if (count($this->longitems) > 0) {
+         return;
+      }
+      $this->DB->query_callback('select * from costs where unixday<? and unixdayto>? order by unixday, dayid', // excluding today
+      array($this->unixday, $this->unixday), //
+      function ($r) use ($nowday) {
+         $item = Item::from_db($r);
+         $item->set_nowday($nowday);
+         $this->longitems[] = $item;
+      });
    }
 
    public function to_html($FirstChecked, $qfocuscheck, $nofooter) {
@@ -109,13 +132,29 @@ class Day {
             $image = ' <img src="' . $image . '"/>';
          }
          $h.= Html::table_footer_row(' <span title="Daily balance corrected using recurrence">' //
-          . '<b style="color:#00f">Sum</b> ' . printsum($this->timedsum, true) . $image . '</span> &nbsp; ' //
+          . '<b style="color:#00f">Sum</b> ' . printsum($this->get_timedsum(), true) . $image . '</span> &nbsp; ' //
           . '<span class="transp" title="Daily balance"><b style="color:#f00">Sum*</b> ' //
-          . printsum($this->sum) . '</span>' //
-         );
+          . printsum($this->get_sum()) . '</span>' //
+          . ' &nbsp; <a href="javascript://" title="Show recurring entries" class="getlongitems" data-ud="' . $this->unixday . '">L</a>');
       }
 
       return $h;
+   }
+
+   // Get HTML describing all elements affecting the current day
+   public function get_long_info($nowday) {
+      $this->load_items($nowday);
+      $this->load_long_items($nowday);
+      $out = '';
+      /*
+      foreach ($this->items as $item){
+         $out .= $item->to_html_line();
+      }
+      */
+      foreach ($this->longitems as $item) {
+         $out.= $item->to_html_line();
+      }
+      return '<table>' . $out . '</table>';
    }
 
 }

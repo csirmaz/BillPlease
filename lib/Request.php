@@ -50,8 +50,11 @@ class Request {
 
    public function get_money($key) {
       $value = $this->get_value($key);
-      if ((!is_numeric($value)) || intval($value * 100) != $value * 100) {
-         throw new Exception("'$value' is not a valid value.");
+      if (!is_numeric($value)) {
+         throw new Exception("'$value' is not a valid value (1)");
+      }
+      if (!preg_match('/^-?\d+(\.\d{1,2})?$/', $value)) {
+         throw new Exception("'$value' is not a valid value (2)");
       }
       return $value;
    }
