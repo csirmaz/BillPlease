@@ -91,8 +91,10 @@ class CostsDB extends SQLBrite {
 
    /** Returns the number of days passed since the UNIX epoch */
    public static function date2unixday($year, $month, $day) {
+      // TODO Use a UnixDay object
       return round(mktime(0, 0, 0, $month, $day, $year) / 60 / 60 / 24);
    }
+
 }
 
 ?>

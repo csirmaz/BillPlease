@@ -147,9 +147,13 @@ class ItemData {
    public function get_clong_as_num() {
       $v = $this->clong - 0;
       if ($v == 0) {
-         throw new Exception('Error retrieving long value');
+         throw new Exception('Error retrieving long value on ' . $this->year . ' ' . $this->month . ' ' . $this->day);
       }
       return $v;
+   }
+
+   public function get_info() {
+      return $this->year . '-' . $this->month . '-' . $this->day . ' ' . $this->name . ' ' . $this->value . '/' . $this->timespan;
    }
 
    public function realvalue() {

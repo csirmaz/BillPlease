@@ -27,15 +27,15 @@ class Html {
    public static function table_header_row($title, $year, $month, $day, $unixday = false, $adddate = false) {
       $newon = '';
       $piechart = '';
+      if ($unixday === false) {
+         $unixday = CostsDB::date2unixday($year, $month, $day);
+      }
+      $ut = $unixday * 24 * 60 * 60;
       if ($year !== false) {
          $idx = $year . ',' . $month . ',' . $day;
          $newon = 'onclick="newon(' . $idx . ')" title="Click to create a new entry on this day"';
          $piechart = 'onclick="piec(' . $idx . ')" title="Click to draw pie chart FROM this day"';
       }
-      if ($unixday === false) {
-         $unixday = CostsDB::date2unixday($year, $month, $day);
-      }
-      $ut = $unixday * 24 * 60 * 60;
       if ($title === false) {
          $title = 'Week ' . date('W', $ut) . ': <b>' . date('D d M Y', $ut) . '</b>';
       }
