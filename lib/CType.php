@@ -23,6 +23,7 @@ class CType {
    private $DB = array();
    private $types = array(); /*< label => array(name=>, chartcolor=>, addto=>, exceptlongto=>, chartorder=>) */
    private $sums = array(); /*< label => sum */
+   private $gensums = array(); /*< '+'/'-' => sum */
 
    public function __construct($DB) {
 
@@ -48,6 +49,7 @@ class CType {
       foreach ($this->types as $sign => $val) {
          $this->sums[$sign] = 0;
       }
+      $this->gensums = array('+'=>0, '-'=>0);
 
       if ($timed) {
          $query = 'select * from costs where accountfrom=\'\' and unixdayto > ? and unixday <= ?';
@@ -64,13 +66,18 @@ class CType {
             $v = $v * $visiblespan / $item->get_timespan();
          }
 
-         if ($t['exceptlongto']) {
-            $long = $item->get_clong_as_num();
-            $v-= $long;
-            $this->sums[$t['exceptlongto']]+= $long;
+         if($v<0){ // income
+            $this->gensums['+'] -= $v;
+         }else{
+            $this->gensums['-'] += $v;
+            if ($t['exceptlongto']) {
+               $long = $item->get_clong_as_num();
+               $v-= $long;
+               $this->sums[$t['exceptlongto']]+= $long;
+            }
+            $c = $r['ctype'];
+            $this->sums[$t['addto'] ? $t['addto'] : $item->get_ctype() ]+= $v;
          }
-         $c = $r['ctype'];
-         $this->sums[$t['addto'] ? $t['addto'] : $item->get_ctype() ]+= $v;
       });
    }
 
@@ -97,6 +104,11 @@ class CType {
          $callback($label, $data);
       }
    }
+
+   public function get_gensums(){
+      return $this->gensums;
+   }
+
 }
 
 ?>
