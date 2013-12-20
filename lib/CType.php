@@ -18,6 +18,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** This class collects sums per type (category) */
+
 class CType {
 
    private $DB = array();

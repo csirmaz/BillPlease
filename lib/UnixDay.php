@@ -18,6 +18,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** This class represents a day as a datetime that can be manipulated using different protocols */
+
 class UnixDay {
    private $myud;
    private $myyear;
@@ -31,12 +33,17 @@ class UnixDay {
 
    /** Alternative constructor */
    public static function from_ymd($year, $month, $day) {
-      $me = new UnixDay(0);
+      $me = new self(0);
       $me->myyear = $year;
       $me->mymonth = $month;
       $me->myday = $day;
       $me->date2unixday();
       return $me;
+   }
+
+   /** Alternative constructor: from UNIX timestamp */
+   public static function from_ut($ut){
+     return new self(floor($ut/60/60/24));
    }
 
    public function ud() {
@@ -100,6 +107,10 @@ class UnixDay {
    public function simple_string($ud) {
       $ut = $this->myud * 24 * 60 * 60;
       return date('Y-n-j', $ut);
+   }
+
+   public function js_date() {
+      return 'new Date(' . $this->myyear . ',' . ($this->mymonth - 1) . ',' . $this->myday . ')';
    }
 
    private function date2unixday() {
