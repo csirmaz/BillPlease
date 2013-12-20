@@ -21,20 +21,20 @@
 /** Class representing an expense item */
 class ItemData {
    protected $id;
-   public $year; // TODO Review public properties
-   public $month;
-   public $day;
-   public $dayid;
+   protected $year;
+   protected $month;
+   protected $day;
+   protected $dayid;
    protected $name;
    protected $value; /*< in the object, not an integer; in the DB, multiplied by 100 */
    protected $timespan;
-   public $accountto;
+   protected $accountto;
    protected $accountfrom;
    protected $checked;
    protected $ctype; /*< in the object, can be 'X'; in the DB, empty string is used */
    protected $business;
    protected $clong;
-   public $unixday; /*< = unixtime/24/60/60 */
+   protected $unixday; /*< = unixtime/24/60/60 */
    protected $unixdayto; /*< = unixday+timespan */
    protected $infuture = false; /*< Not in DB. Depends on current time. */
    protected $activelong = false; /*< Not in DB. Depends on current time. */
@@ -124,6 +124,22 @@ class ItemData {
       return (new Item($attrs));
    }
 
+   /** Set flags that depend on the current time */
+   public function set_nowday($nowday) { // expects unixtime/60/60/24
+      if ($this->unixday > $nowday) {
+         $this->infuture = true;
+      } else {
+         if ($this->unixday <= $nowday && $this->unixdayto > $nowday) {
+            $this->activelong = true;
+         }
+      }
+      return $this;
+   }
+
+   public function get_dayid() {
+      return $this->dayid;
+   }
+
    public function get_unixday() {
       return $this->unixday;
    }
@@ -142,6 +158,10 @@ class ItemData {
 
    public function get_clong() {
       return $this->clong;
+   }
+
+   public function get_accountto() {
+      return $this->accountto;
    }
 
    public function get_clong_as_num() {
@@ -181,18 +201,6 @@ class ItemData {
       $DB->exec_assert_change( //
       'insert into costs (' . implode(',', $names) . ') values (' . implode(',', $placeholders) . ')', //
       $values, 1);
-   }
-
-   /** Set flags that depend on the current time */
-   public function set_nowday($nowday) { // expects unixtime/60/60/24
-      if ($this->unixday > $nowday) {
-         $this->infuture = true;
-      } else {
-         if ($this->unixday <= $nowday && $this->unixdayto > $nowday) {
-            $this->activelong = true;
-         }
-      }
-      return $this;
    }
 
 }

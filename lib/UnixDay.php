@@ -117,7 +117,7 @@ class UnixDay {
       $this->myud = round(mktime(0, 0, 0, $this->mymonth, $this->myday, $this->myyear) / 60 / 60 / 24);
    }
 
-   private function unixday2date($ud) {
+   private function unixday2date() {
       $ut = $this->myud * 24 * 60 * 60;
       $this->myyear = date('Y', $ut);
       $this->mymonth = date('n', $ut);
