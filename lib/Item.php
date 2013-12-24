@@ -79,14 +79,18 @@ class Item extends ItemData {
       $checkedselector = Html::checkedselector($this->checked);
       $accountselector = Html::accountselector($DB, $this->accountto . $this->accountfrom);
       $cbusiness = $this->business == 1 ? 'checked' : '';
+      $unixday = $this->uday->ud();
+      $year = $this->uday->year();
+      $month = $this->uday->month();
+      $day = $this->uday->day();
 
       return (<<<THEEND
 <input type="hidden" name="oldidayid" value="{$this->dayid}">
-<input type="hidden" name="oldiuday" value="{$this->unixday}">
+<input type="hidden" name="oldiuday" value="{$unixday}">
 
-<input type="text" name="year" size=2 value="{$this->year}" title="Year"> /
-<input type="text" name="month" size=2 value="{$this->month}" title="Month"> /
-<input type="text" name="day" size=2 value="{$this->day}" autocomplete="off" title="Day"> :
+<input type="text" name="year" size=2 value="{$year}" title="Year"> /
+<input type="text" name="month" size=2 value="{$month}" title="Month"> /
+<input type="text" name="day" size=2 value="{$day}" autocomplete="off" title="Day"> :
 <input type="text" name="name" size=30 value="{$this->name}" spellcheck="false" autocomplete="off" onblur="namecomplete()" title="Description (Company name)"> =
 <input type="text" name="value" size=4 value="{$this->value}" autocomplete="off" title="Price in GBP"> GBP
 <br/>
@@ -107,7 +111,7 @@ THEEND
    /** Generate a HTML view of the item */
    public function to_html( //
    $FirstChecked, /*< an object or false not to color the first entry */
-   $qfocuscheck, // array or false to skip or true to add ID used to move focus
+   $qfocuscheck, /*< array or false to skip or true to add ID used to move focus */
    $adddate = false /*< bool */
    ) {
       $style_name = '';
@@ -154,9 +158,9 @@ THEEND
 
       // Retain focus
       if (($qfocuscheck !== false //
-       && $qfocuscheck[0] == $this->year //
-       && $qfocuscheck[1] == $this->month //
-       && $qfocuscheck[2] == $this->day //
+       && $qfocuscheck[0] == $this->uday->year() //
+       && $qfocuscheck[1] == $this->uday->month() //
+       && $qfocuscheck[2] == $this->uday->day() //
        && $qfocuscheck[3] == $this->dayid) || $qfocuscheck === true
       //
       ) {
@@ -169,11 +173,11 @@ THEEND
          $comment = ' <span class="comment" title="' . $comment . '">' . substr($comment, 0, 16) . '</span>';
       }
 
-      $idx = $this->year . ',' . $this->month . ',' . $this->day . ',' . $this->dayid;
+      $idx = $this->uday->year() . ',' . $this->uday->month() . ',' . $this->uday->day() . ',' . $this->dayid;
 
       return ('<tr class="' . $style_row . '">'
       // date
-       . ($adddate ? '<td>' . date('D d M Y', $this->unixday * 24 * 60 * 60) . '</td>' : '')
+       . ($adddate ? '<td>' . date('D d M Y', $this->uday->ud() * 24 * 60 * 60) . '</td>' : '')
       // name
        . '<td title="Click to edit" onclick="edi(' . $idx . ')" class="' . $style_name . '">' . $this->name
       // long (comment)
@@ -190,7 +194,7 @@ THEEND
 
    public function to_html_line() {
       $perday = $this->value / $this->timespan;
-      return '<tr><td>' . implode('</td><td>', array($this->year . '-' . $this->month . '-' . $this->day, //
+      return '<tr><td>' . implode('</td><td>', array($this->uday->year() . '-' . $this->uday->month() . '-' . $this->uday->day(), //
       $this->name, //
       printsum($this->value), //
       printsum($perday * 365 / 12) . '/m ', //

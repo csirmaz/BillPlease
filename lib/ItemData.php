@@ -21,9 +21,13 @@
 /** Class representing an expense item */
 class ItemData {
    protected $id;
+
    protected $year;
    protected $month;
    protected $day;
+   protected $uday; /*< UnixDay object */
+   protected $udayto; /*< UnixDay object; $uday+$timespan */
+
    protected $dayid;
    protected $name;
    protected $value; /*< in the object, not an integer; in the DB, multiplied by 100 */
@@ -34,11 +38,10 @@ class ItemData {
    protected $ctype; /*< in the object, can be 'X'; in the DB, empty string is used */
    protected $business;
    protected $clong;
-   protected $unixday; /*< = unixtime/24/60/60 */
-   protected $unixdayto; /*< = unixday+timespan */
    protected $infuture = false; /*< Not in DB. Depends on current time. */
    protected $activelong = false; /*< Not in DB. Depends on current time. */
 
+   /** Expects an array keyed on property names and with appropriate values */
    private function __construct($attrs = array()) {
       foreach ($attrs as $k => $v) {
          if (property_exists($this, $k)) {
@@ -53,6 +56,8 @@ class ItemData {
       if (!$attrs['ctype']) {
          $attrs['ctype'] = 'X';
       }
+      $attrs['uday'] = new UnixDay($attrs['unixday']);
+      $attrs['udayto'] = new UnixDay($attrs['unixdayto']);
       $item = new Item($attrs);
       return $item;
    }
@@ -65,19 +70,20 @@ class ItemData {
       'day' => $day));
    }
 
-   /** Construct object from raw, possibly incomplete data
+   /** Construct object from raw, possibly incomplete data.
     *
+    * Extra keys in $attrs: 'year', 'month', 'day', 'unixday', 'unixdayto'
     * Year, month, day and unixday are calculated from each other.
     * A new dayid is requested if it is unset, false, or <0, *and* $DB is given.
     */
    public static function from_raw($attrs = array(), $DB = false) {
 
-      // accounts -> accountto, accountfrom
+      // accounts (two characters) -> accountto, accountfrom (one character each)
       if (isset($attrs['accounts'])) {
          $attrs['accountto'] = substr($attrs['accounts'], 0, 1);
          $attrs['accountfrom'] = substr($attrs['accounts'], 1, 1);
       }
-      // fix business
+      // fix business -> 1/0
       $attrs['business'] = (isset($attrs['business']) && $attrs['business']) ? 1 : 0;
       // fix checked
       if ((!isset($attrs['checked'])) || $attrs['checked'] == '') {
@@ -89,35 +95,32 @@ class ItemData {
       }
 
       // get unixday
-      if (!isset($attrs['unixday'])) {
-         $attrs['unixday'] = CostsDB::date2unixday($attrs['year'], $attrs['month'], $attrs['day']);
-      }
-      // or get year, month, day
-      if (!isset($attrs['year'])) {
-         $at = $attrs['unixday'] * 60 * 60 * 24;
-         $attrs['year'] = date('Y', $at);
-         $attrs['month'] = date('n', $at);
-         $attrs['day'] = date('j', $at);
-
+      if (isset($attrs['unixday'])) {
+         $attrs['uday'] = new UnixDay($attrs['unixday']);
+         unset($attrs['unixday']);
+      }else{
+         $attrs['uday'] = UnixDay::from_ymd($attrs['year'], $attrs['month'], $attrs['day']);
       }
 
-      // fix timespan (needs month)
+      // fix timespan
       if ((!isset($attrs['timespan'])) || $attrs['timespan'] < 1) {
          $attrs['timespan'] = 1;
       } elseif ($attrs['timespan'] == 30) {
-         $attrs['timespan'] = thirtyone($attrs['month']); // TODO global function
-
+         $attrs['timespan'] = thirtyone($attrs['uday']->month()); // TODO global function
       }
 
       // get unixdayto (needs timespan)
-      if (!isset($attrs['unixdayto'])) {
-         $attrs['unixdayto'] = $attrs['unixday'] + $attrs['timespan'];
+      if (isset($attrs['unixdayto'])) {
+         $attrs['udayto'] = new UnixDay($attrs['unixdayto']);
+         unset($attrs['unixdayto']);
+      }else{
+         $attrs['udayto'] = new UnixDay($attrs['uday']->ud() + $attrs['timespan']);
       }
 
       // try to get dayid if $DB is given
       if (!isset($attrs['dayid']) || $attrs['dayid'] === false || $attrs['dayid'] < 0) {
          if ($DB) {
-            $attrs['dayid'] = $DB->get_free_dayid($attrs['unixday']);
+            $attrs['dayid'] = $DB->get_free_dayid($attrs['uday']->ud());
          }
       }
 
@@ -126,10 +129,10 @@ class ItemData {
 
    /** Set flags that depend on the current time */
    public function set_nowday($nowday) { // expects unixtime/60/60/24
-      if ($this->unixday > $nowday) {
+      if ($this->uday->ud() > $nowday) {
          $this->infuture = true;
       } else {
-         if ($this->unixday <= $nowday && $this->unixdayto > $nowday) {
+         if ($this->uday->ud() <= $nowday && $this->udayto->ud() > $nowday) {
             $this->activelong = true;
          }
       }
@@ -141,11 +144,11 @@ class ItemData {
    }
 
    public function get_unixday() {
-      return $this->unixday;
+      return $this->uday->ud();
    }
 
    public function get_unixdayto() {
-      return $this->unixdayto;
+      return $this->udayto->ud();
    }
 
    public function get_timespan() {
@@ -167,13 +170,13 @@ class ItemData {
    public function get_clong_as_num() {
       $v = $this->clong - 0;
       if ($v == 0) {
-         throw new Exception('Error retrieving long value on ' . $this->year . ' ' . $this->month . ' ' . $this->day);
+         throw new Exception('Error retrieving long value on ' . $this->uday->simple_string());
       }
       return $v;
    }
 
    public function get_info() {
-      return $this->year . '-' . $this->month . '-' . $this->day . ' ' . $this->name . ' ' . $this->value . '/' . $this->timespan;
+      return $this->uday->simple_string() . ' ' . $this->name . ' ' . $this->value . '/' . $this->timespan;
    }
 
    public function realvalue() {
@@ -186,14 +189,39 @@ class ItemData {
    public function store($DB) {
       $placeholders = array();
       $values = array();
-      $names = array('year', 'month', 'day', 'dayid', 'name', 'value', 'timespan', 'accountto', 'accountfrom', 'checked', 'ctype', 'business', 'clong', 'unixday', 'unixdayto');
+      $names = array('year', 'month', 'day', 'dayid', //
+      'name', 'value', 'timespan', 'accountto', 'accountfrom', //
+      'checked', 'ctype', 'business', 'clong', 'unixday', 'unixdayto');
       foreach ($names as $n) {
-         $v = $this->$n;
-         if ($n == 'value') {
-            $v*= 100;
-         } elseif ($n == 'ctype') {
-            $v = ($v == 'X' ? '' : $v);
+         switch($n){
+            case 'value':
+               $v = $this->$n;
+               $v*= 100;
+               break;
+            case 'ctype':
+               $v = $this->$n;
+               $v = ($v == 'X' ? '' : $v);
+               break;
+            case 'year':
+               $v = $this->uday->year();
+               break;
+            case 'month':
+               $v = $this->uday->month();
+               break;
+            case 'day':
+               $v = $this->uday->day();
+               break;
+            case 'unixday':
+               $v = $this->uday->ud();
+               break;
+            case 'unixdayto':
+               $v = $this->udayto->ud();
+               break;
+            default:
+               $v = $this->$n;
+               break;
          }
+
          $placeholders[] = '?';
          $values[] = $v;
       }
