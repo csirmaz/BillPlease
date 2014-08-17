@@ -111,6 +111,14 @@ class CType {
       return $this->gensums;
    }
 
+   /** Retrun income/expense sums minus expenses marked as 'X' */
+   public function get_gensums_corrected(){
+      return array(
+         '+' => ($this->gensums['+'] - $this->sums['X']),
+         '-' => ($this->gensums['-'] - $this->sums['X'])
+      );
+   }
+
 }
 
 ?>

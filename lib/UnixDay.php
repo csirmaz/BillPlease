@@ -104,7 +104,7 @@ class UnixDay {
       return ($this->myud > $unixday->ud());
    }
 
-   public function simple_string($ud) {
+   public function simple_string() {
       $ut = $this->myud * 24 * 60 * 60;
       return date('Y-n-j', $ut);
    }

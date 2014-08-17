@@ -64,7 +64,8 @@ class ItemData {
 
    /** Alternative constructor */
    public static function new_empty_on($year, $month, $day) {
-      return self::from_raw(array('dayid' => - 1, //
+      return self::from_raw(array( //
+      'dayid' => - 1, //
       'year' => $year, //
       'month' => $month, //
       'day' => $day));
@@ -117,13 +118,6 @@ class ItemData {
          $attrs['udayto'] = new UnixDay($attrs['uday']->ud() + $attrs['timespan']);
       }
 
-      // try to get dayid if $DB is given
-      if (!isset($attrs['dayid']) || $attrs['dayid'] === false || $attrs['dayid'] < 0) {
-         if ($DB) {
-            $attrs['dayid'] = $DB->get_free_dayid($attrs['uday']->ud());
-         }
-      }
-
       return (new Item($attrs));
    }
 
@@ -143,6 +137,20 @@ class ItemData {
       return $this->dayid;
    }
 
+   public function reset_dayid() {
+      $this->dayid = -1;
+      return $this;
+   }
+
+   public function get_name() {
+      return $this->name;
+   }
+
+   public function set_name($x) {
+      $this->name = $x;
+      return $this;
+   }
+
    public function get_unixday() {
       return $this->uday->ud();
    }
@@ -157,6 +165,12 @@ class ItemData {
 
    public function get_ctype() {
       return $this->ctype;
+   }
+
+   public function set_ctype($x) {
+      if((!isset($x)) || $x===false || $x==''){ $x='X'; }
+      $this->ctype = $x;
+      return $this;
    }
 
    public function get_clong() {
@@ -177,6 +191,15 @@ class ItemData {
 
    public function get_info() {
       return $this->uday->simple_string() . ' ' . $this->name . ' ' . $this->value . '/' . $this->timespan;
+   }
+
+   public function get_value() {
+      return $this->value;
+   }
+
+   public function set_value($x) {
+      $this->value = $x;
+      return $this;
    }
 
    public function realvalue() {
@@ -216,6 +239,14 @@ class ItemData {
                break;
             case 'unixdayto':
                $v = $this->udayto->ud();
+               break;
+            case 'dayid':
+               if(isset($this->dayid) && $this->dayid !==false && $this->dayid >= 0){
+                  $v = $this->dayid;
+               }else{
+                  $v = $DB->get_free_dayid($this->uday->ud());
+                  $this->dayid = $v;
+               }
                break;
             default:
                $v = $this->$n;

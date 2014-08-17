@@ -30,6 +30,7 @@ class Texts {
    1 => 'daily*', //
    7 => 'weekly*', //
    15 => 'biweekly*', //
+   22 => 'triweekly*', //
    30 => 'monthly*', //
    31 => 'monthly', //
    91 => 'quarterly*', //
