@@ -31,15 +31,19 @@ class CType {
 
       $this->DB = $DB;
 
-      $DB->query_callback('select * from ctypes order by chartorder', false, function ($r) {
-         $this->types[$r['sign']] = array( //
-         'name' => $r['name'], //
-         'chartcolor' => $r['chartcolor'], //
-         'addto' => $r['addto'], //
-         'exceptlongto' => $r['exceptlongto'], //
-         'chartorder' => $r['chartorder'] //
-         );
-      });
+      $DB->query_callback(
+         'select * from ctypes order by chartorder',
+         false,
+         function ($r) {
+            $this->types[$r['sign']] = array(
+               'name' => $r['name'],
+               'chartcolor' => $r['chartcolor'],
+               'addto' => $r['addto'],
+               'exceptlongto' => $r['exceptlongto'],
+               'chartorder' => $r['chartorder']
+            );
+         }
+      );
    }
 
    /** Sum items per category.
@@ -51,36 +55,40 @@ class CType {
       foreach ($this->types as $sign => $val) {
          $this->sums[$sign] = 0;
       }
-      $this->gensums = array('+'=>0, '-'=>0);
+      $this->gensums = array('+' => 0, '-' => 0);
 
       if ($timed) {
          $query = 'select * from costs where accountfrom=\'\' and unixdayto > ? and unixday <= ?';
       } else {
          $query = 'select * from costs where accountfrom=\'\' and unixday >= ? and unixday <= ?';
       }
-      $this->DB->query_callback($query, array($dayfrom, $dayto), function ($r) use ($dayto, $dayfrom, $timed) {
-         $item = Item::from_db($r);
-         $t = $this->types[$item->get_ctype() ];
-         $v = $item->realvalue();
+      $this->DB->query_callback(
+         $query,
+         array($dayfrom, $dayto),
+         function ($r) use ($dayto, $dayfrom, $timed) {
+            $item = Item::from_db($r);
+            $t = $this->types[$item->get_ctype() ];
+            $v = $item->realvalue();
 
-         if ($timed) {
-            $visiblespan = min($dayto, $item->get_unixdayto() - 1) - max($dayfrom, $item->get_unixday()) + 1;
-            $v = $v * $visiblespan / $item->get_timespan();
-         }
-
-         if($v<0){ // income
-            $this->gensums['+'] -= $v;
-         }else{
-            $this->gensums['-'] += $v;
-            if ($t['exceptlongto']) {
-               $long = $item->get_clong_as_num();
-               $v-= $long;
-               $this->sums[$t['exceptlongto']]+= $long;
+            if ($timed) {
+               $visiblespan = min($dayto, $item->get_unixdayto() - 1) - max($dayfrom, $item->get_unixday()) + 1;
+               $v = $v * $visiblespan / $item->get_timespan();
             }
-            $c = $r['ctype'];
-            $this->sums[$t['addto'] ? $t['addto'] : $item->get_ctype() ]+= $v;
+
+            if ($v < 0) { // income
+               $this->gensums['+'] -= $v;
+            } else {
+               $this->gensums['-'] += $v;
+               if ($t['exceptlongto']) {
+                  $long = $item->get_clong_as_num();
+                  $v -= $long;
+                  $this->sums[$t['exceptlongto']] += $long;
+               }
+               $c = $r['ctype'];
+               $this->sums[$t['addto'] ? $t['addto'] : $item->get_ctype() ] += $v;
+            }
          }
-      });
+      );
    }
 
    public function get_sum($label) {
@@ -107,12 +115,12 @@ class CType {
       }
    }
 
-   public function get_gensums(){
+   public function get_gensums() {
       return $this->gensums;
    }
 
    /** Retrun income/expense sums minus expenses marked as 'X' */
-   public function get_gensums_corrected(){
+   public function get_gensums_corrected() {
       return array(
          '+' => ($this->gensums['+'] - $this->sums['X']),
          '-' => ($this->gensums['-'] - $this->sums['X'])

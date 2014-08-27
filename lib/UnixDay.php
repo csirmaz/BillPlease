@@ -42,8 +42,8 @@ class UnixDay {
    }
 
    /** Alternative constructor: from UNIX timestamp */
-   public static function from_ut($ut){
-     return new self(floor($ut/60/60/24));
+   public static function from_ut($ut) {
+      return new self(floor($ut / 60 / 60 / 24));
    }
 
    public function ud() {
@@ -65,12 +65,12 @@ class UnixDay {
    }
 
    public function add($days) {
-      $this->myday+= $days;
+      $this->myday += $days;
       $this->date2unixday();
    }
 
    public function sub($days) {
-      $this->myday-= $days;
+      $this->myday -= $days;
       $this->date2unixday();
    }
 
@@ -78,7 +78,7 @@ class UnixDay {
       $this->mymonth++;
       if ($this->mymonth > 12) {
          $this->myyear++;
-         $this->mymonth-= 12;
+         $this->mymonth -= 12;
       }
       $this->date2unixday();
    }
@@ -87,7 +87,7 @@ class UnixDay {
       $this->mymonth--;
       if ($this->mymonth < 1) {
          $this->myyear--;
-         $this->mymonth+= 12;
+         $this->mymonth += 12;
       }
       $this->date2unixday();
    }
