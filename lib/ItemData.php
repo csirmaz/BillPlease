@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2013 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2014 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -50,9 +50,9 @@ class ItemData {
       }
    }
 
-   /** Construct from data from the DB */
+   /** Constructs an object from data from the DB */
    public static function from_db($attrs = array()) {
-      $attrs['value']/= 100;
+      $attrs['value'] /= 100;
       if (!$attrs['ctype']) {
          $attrs['ctype'] = 'X';
       }
@@ -64,14 +64,10 @@ class ItemData {
 
    /** Alternative constructor */
    public static function new_empty_on($year, $month, $day) {
-      return self::from_raw(array( //
-      'dayid' => - 1, //
-      'year' => $year, //
-      'month' => $month, //
-      'day' => $day));
+      return self::from_raw(array('dayid' => - 1, 'year' => $year, 'month' => $month, 'day' => $day));
    }
 
-   /** Construct object from raw, possibly incomplete data.
+   /** Constructs an object from raw, possibly incomplete data.
     *
     * Extra keys in $attrs: 'year', 'month', 'day', 'unixday', 'unixdayto'
     * Year, month, day and unixday are calculated from each other.
@@ -99,7 +95,7 @@ class ItemData {
       if (isset($attrs['unixday'])) {
          $attrs['uday'] = new UnixDay($attrs['unixday']);
          unset($attrs['unixday']);
-      }else{
+      } else {
          $attrs['uday'] = UnixDay::from_ymd($attrs['year'], $attrs['month'], $attrs['day']);
       }
 
@@ -108,20 +104,21 @@ class ItemData {
          $attrs['timespan'] = 1;
       } elseif ($attrs['timespan'] == 30) {
          $attrs['timespan'] = thirtyone($attrs['uday']->month()); // TODO global function
+         
       }
 
       // get unixdayto (needs timespan)
       if (isset($attrs['unixdayto'])) {
          $attrs['udayto'] = new UnixDay($attrs['unixdayto']);
          unset($attrs['unixdayto']);
-      }else{
+      } else {
          $attrs['udayto'] = new UnixDay($attrs['uday']->ud() + $attrs['timespan']);
       }
 
       return (new Item($attrs));
    }
 
-   /** Set flags that depend on the current time */
+   /** Sets flags that depend on the current time */
    public function set_nowday($nowday) { // expects unixtime/60/60/24
       if ($this->uday->ud() > $nowday) {
          $this->infuture = true;
@@ -138,7 +135,7 @@ class ItemData {
    }
 
    public function reset_dayid() {
-      $this->dayid = -1;
+      $this->dayid = - 1;
       return $this;
    }
 
@@ -168,7 +165,9 @@ class ItemData {
    }
 
    public function set_ctype($x) {
-      if((!isset($x)) || $x===false || $x==''){ $x='X'; }
+      if ((!isset($x)) || $x === false || $x == '') {
+         $x = 'X';
+      }
       $this->ctype = $x;
       return $this;
    }
@@ -212,54 +211,70 @@ class ItemData {
    public function store($DB) {
       $placeholders = array();
       $values = array();
-      $names = array('year', 'month', 'day', 'dayid', //
-      'name', 'value', 'timespan', 'accountto', 'accountfrom', //
-      'checked', 'ctype', 'business', 'clong', 'unixday', 'unixdayto');
+      $names = array(
+         'year',
+         'month',
+         'day',
+         'dayid',
+         'name',
+         'value',
+         'timespan',
+         'accountto',
+         'accountfrom',
+         'checked',
+         'ctype',
+         'business',
+         'clong',
+         'unixday',
+         'unixdayto'
+      );
       foreach ($names as $n) {
-         switch($n){
+         switch ($n) {
             case 'value':
                $v = $this->$n;
-               $v*= 100;
-               break;
+               $v *= 100;
+            break;
             case 'ctype':
                $v = $this->$n;
                $v = ($v == 'X' ? '' : $v);
-               break;
+            break;
             case 'year':
                $v = $this->uday->year();
-               break;
+            break;
             case 'month':
                $v = $this->uday->month();
-               break;
+            break;
             case 'day':
                $v = $this->uday->day();
-               break;
+            break;
             case 'unixday':
                $v = $this->uday->ud();
-               break;
+            break;
             case 'unixdayto':
                $v = $this->udayto->ud();
-               break;
+            break;
             case 'dayid':
-               if(isset($this->dayid) && $this->dayid !==false && $this->dayid >= 0){
+               if (isset($this->dayid) && $this->dayid !== false && $this->dayid >= 0) {
                   $v = $this->dayid;
-               }else{
+               } else {
                   $v = $DB->get_free_dayid($this->uday->ud());
                   $this->dayid = $v;
                }
-               break;
+            break;
             default:
                $v = $this->$n;
-               break;
+            break;
          }
 
          $placeholders[] = '?';
          $values[] = $v;
       }
 
-      $DB->exec_assert_change( //
-      'insert into costs (' . implode(',', $names) . ') values (' . implode(',', $placeholders) . ')', //
-      $values, 1);
+      $DB->exec_assert_change(
+         'insert into costs (' . implode(',', $names) . ') values (' . implode(',', $placeholders) . ')',
+         $values,
+         1
+      );
    }
 
 }
