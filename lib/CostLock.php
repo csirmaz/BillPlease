@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2013 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2014 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -21,26 +21,24 @@
 /** Implements a lock to prevent concurrent updates */
 class CostLock {
    private $file;
-   private $pathfile;
    private $acquired = false;
 
    public function __construct($file) {
       $this->file = $file;
-      $this->pathfile = getcwd() . DIRECTORY_SEPARATOR . $this->file;
-      if (file_exists($this->pathfile)) {
+      if (file_exists($this->file)) {
          print ('The system is currently in use by someone else!');
          exit(0);
       }
-      if (!touch($this->pathfile)) {
-         print ('Sorry, could not get lock.');
+      if (!touch($this->file)) {
+         print ('Sorry, could not get lock at ' . $this->file);
          exit(0);
       }
       $this->acquired = true;
    }
 
    public function __destruct() {
-      if ($this->acquired && !unlink($this->pathfile)) {
-         print ('Error while releasing lock.');
+      if ($this->acquired && !unlink($this->file)) {
+         print ('Error while releasing lock at ' . $this->file);
       }
    }
 }
