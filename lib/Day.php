@@ -27,7 +27,7 @@ class Day {
    private $timedsum;
    private $items = array();
    private $longitems = array(); // recurring items affecting this day
-   
+
    /** Constructor */
    public function __construct($DB, $year, $month, $day, $unixday = false) {
       $this->uday = ($unixday ? $unixday : UnixDay::from_ymd($year, $month, $day));
@@ -105,7 +105,7 @@ class Day {
       );
    }
 
-   public function to_html($FirstChecked) {
+   public function to_html() {
 
       // header
       $h = Html::table_header_row(
@@ -117,7 +117,7 @@ class Day {
       );
 
       foreach ($this->items as $item) {
-         $h .= $item->to_html($FirstChecked);
+         $h .= $item->to_html();
       }
 
       // footer

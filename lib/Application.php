@@ -25,6 +25,7 @@ class Application {
    private $db;
    private $solder;
    private $lock;
+   private $first_checked;
 
    /** Returns the singleton Application object */
    public static function get() {
@@ -50,6 +51,8 @@ class Application {
       $this->solder = new Solder($config['template_file']);
 
       $this->lock = new CostLock($config['lock_file']);
+
+      $this->first_checked = new FirstChecked($this->db, $this->solder);
    }
 
    public function db() {
@@ -62,6 +65,10 @@ class Application {
 
    public function lock() {
       return $this->lock;
+   }
+
+   public function first_checked() {
+      return $this->first_checked;
    }
 
 }

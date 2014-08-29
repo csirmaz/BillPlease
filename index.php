@@ -24,15 +24,16 @@ require $PATH . '/sqlbrite/sqlbrite.php';
 require $PATH . '/solder/Solder.php';
 require $PATH . '/CostsDB.php';
 require $PATH . '/CostLock.php';
+require $PATH . '/UnixDay.php';
+require $PATH . '/Application.php';
 require $PATH . '/Texts.php';
-require $PATH . '/Control.php';
 require $PATH . '/Request.php';
+require $PATH . '/Control.php';
 require $PATH . '/ItemData.php';
 require $PATH . '/Item.php';
 require $PATH . '/Day.php';
 require $PATH . '/Html.php';
 require $PATH . '/CType.php';
-require $PATH . '/UnixDay.php';
-require $PATH . '/Application.php';
+require $PATH . '/FirstChecked.php';
 
 ?>

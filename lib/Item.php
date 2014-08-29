@@ -36,18 +36,17 @@ class Item extends ItemData {
       $oldunixday = $RequestObj->get_int('oldiuday');
       $dayid = $RequestObj->get_int('oldidayid');
 
-      $newunixday = $DB->date2unixday( //
-         $RequestObj->get_year('year'), //
-         $RequestObj->get_month('month'), //
-         $RequestObj->get_day('day') //
-         
+      $newunixday = $DB->date2unixday(
+         $RequestObj->get_year('year'),
+         $RequestObj->get_month('month'),
+         $RequestObj->get_day('day')
       );
 
       // Always delete modified entry from DB
       if ($dayid != - 1) {
-         $DB->exec_assert_change( //
-            'DELETE FROM costs WHERE unixday = ? AND dayid = ?', //
-            array($oldunixday, $dayid), //
+         $DB->exec_assert_change(
+            'DELETE FROM costs WHERE unixday = ? AND dayid = ?',
+            array($oldunixday, $dayid),
             1
          );
       }
@@ -58,18 +57,17 @@ class Item extends ItemData {
       }
 
       self::from_raw(
-         array( //
-            'unixday' => $newunixday, //
-            'dayid' => $dayid, //
-            'name' => $RequestObj->get_string('name'), //
-            'value' => $RequestObj->get_money('value'), //
-            'timespan' => $RequestObj->get_int('fortime'), //
-            'accounts' => $RequestObj->get_value('account'), //
-            'checked' => $RequestObj->get_value('checked'), //
-            'ctype' => $RequestObj->get_value('type'), //
-            'business' => $RequestObj->get_checkbox('business'), //
-            'clong' => $RequestObj->get_value('long') //
-            
+         array(
+            'unixday' => $newunixday,
+            'dayid' => $dayid,
+            'name' => $RequestObj->get_string('name'),
+            'value' => $RequestObj->get_money('value'),
+            'timespan' => $RequestObj->get_int('fortime'),
+            'accounts' => $RequestObj->get_value('account'),
+            'checked' => $RequestObj->get_value('checked'),
+            'ctype' => $RequestObj->get_value('type'),
+            'business' => $RequestObj->get_checkbox('business'),
+            'clong' => $RequestObj->get_value('long')
          ),
          $DB
       )->store($DB);
@@ -100,13 +98,18 @@ class Item extends ItemData {
 
    }
 
+   /** Returns a CSS class identifying the current item */
    public function item_id_css() {
-      return 'bpid_' . $this->id;
+      return self::static_item_id_css($this->id);
+   }
+
+   /** Returns a CSS class identifying the current item */
+   public static function static_item_id_css($id){
+      return 'bpid_' . $id;
    }
 
    /** Generate a HTML view of the item */
    public function to_html(
-      $FirstChecked, /*< an object or false not to color the first entry */
       $adddate = false /*< bool */
    ) {
       $style_row = $this->item_id_css();
@@ -119,14 +122,6 @@ class Item extends ItemData {
 
          if ($this->business) {
             $style_row .= ' bpbusiness';
-         }
-         if ($FirstChecked) {
-            if ($FirstChecked->isfirstunchecked($this)) {
-               $style_row .= ' bpfirst_unc';
-            }
-            if ($FirstChecked->isfirstgreenblue($this)) {
-               $style_row .= ' bpfirst_unc_gb';
-            }
          }
 
          if (strstr($this->name, '!?') !== FALSE) {
