@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2013 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2014 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -27,13 +27,14 @@ class Day {
    private $timedsum;
    private $items = array();
    private $longitems = array(); // recurring items affecting this day
-
+   
+   /** Constructor */
    public function __construct($DB, $year, $month, $day, $unixday = false) {
       $this->uday = ($unixday ? $unixday : UnixDay::from_ymd($year, $month, $day));
       $this->DB = $DB;
    }
 
-   // Alternative constructor
+   /** Alternative constructor */
    public static function from_unixday($DB, $unixday) {
       return new self($DB, false, false, false, new UnixDay($unixday));
    }
@@ -56,14 +57,15 @@ class Day {
       if (!isset($this->sum)) {
          // Index: costs_acfr_ud_v
          $this->sum = $this->DB->querysingle( // TODO Sum set here and below
-         'select sum(value) from costs where unixday=? and accountfrom=\'\'', array($this->uday->ud()) //
+            'select sum(value) from costs where unixday=? and accountfrom=\'\'',
+            array($this->uday->ud())
          ) / 100;
       }
       if (!isset($this->timedsum)) {
          // Index: costs_acfr_ud_udt_v_s
-         $this->timedsum = $this->DB->querysingle( //
-         'select sum((value*1.0)/timespan) from costs where unixday<=? and unixdayto>? and accountfrom=\'\'', //
-         array($this->uday->ud(), $this->uday->ud()) //
+         $this->timedsum = $this->DB->querysingle(
+            'select sum((value*1.0)/timespan) from costs where unixday<=? and unixdayto>? and accountfrom=\'\'',
+            array($this->uday->ud(), $this->uday->ud())
          ) / 100;
       }
    }
@@ -73,15 +75,17 @@ class Day {
          return;
       }
       $sum = 0;
-      $this->DB->query_callback('select * from costs where unixday=? order by dayid', //
-      array($this->uday->ud()), //
-      function ($r) use ($nowday, &$sum) {
-         $item = Item::from_db($r);
-         $item->set_nowday($nowday);
-         $this->items[] = $item;
-         $sum+= $item->realvalue(); // TODO Sum loaded here and above
-
-      });
+      $this->DB->query_callback(
+         'select * from costs where unixday=? order by dayid',
+         array($this->uday->ud()),
+         function ($r) use ($nowday, &$sum) {
+            $item = Item::from_db($r);
+            $item->set_nowday($nowday);
+            $this->items[] = $item;
+            $sum += $item->realvalue(); // TODO Sum loaded here and above
+            
+         }
+      );
 
       $this->sum = $sum;
    }
@@ -90,42 +94,51 @@ class Day {
       if (count($this->longitems) > 0) {
          return;
       }
-      $this->DB->query_callback('select * from costs where unixday<? and unixdayto>? order by unixday, dayid', // excluding today
-      array($this->uday->ud(), $this->uday->ud()), //
-      function ($r) use ($nowday) {
-         $item = Item::from_db($r);
-         $item->set_nowday($nowday);
-         $this->longitems[] = $item;
-      });
+      $this->DB->query_callback(
+         'select * from costs where unixday<? and unixdayto>? order by unixday, dayid', // excluding today
+         array($this->uday->ud(), $this->uday->ud()),
+         function ($r) use ($nowday) {
+            $item = Item::from_db($r);
+            $item->set_nowday($nowday);
+            $this->longitems[] = $item;
+         }
+      );
    }
 
-   public function to_html($FirstChecked, $qfocuscheck, $nofooter) {
+   public function to_html($FirstChecked) {
 
       // header
-      $h = Html::table_header_row(false, $this->uday->year(), $this->uday->month(), $this->uday->day(), $this->uday->ud());
+      $h = Html::table_header_row(
+         false,
+         $this->uday->year(),
+         $this->uday->month(),
+         $this->uday->day(),
+         $this->uday->ud()
+      );
 
       foreach ($this->items as $item) {
-         $h.= $item->to_html($FirstChecked, $qfocuscheck);
+         $h .= $item->to_html($FirstChecked);
       }
 
       // footer
-      if (!$nofooter) {
-         $image = false;
-         if ($this->get_timedsum() < - 2) {
-            $image = 'plus.png';
-         }
-         if ($this->get_timedsum() > 0) {
-            $image = 'minus.png';
-         }
-         if ($image) {
-            $image = ' <img src="' . $image . '"/>';
-         }
-         $h.= Html::table_footer_row(' <span title="Daily balance corrected using recurrence">' //
-          . '<b style="color:#00f">Sum</b> ' . printsum($this->get_timedsum(), true) . $image . '</span> &nbsp; ' //
+      $icon = false;
+      if ($this->get_timedsum() < - 2) {
+         $icon = 'bpicon_saved glyphicon-heart-empty';
+      }
+      if ($this->get_timedsum() > 0) {
+         $icon = 'bpicon_lost glyphicon-thumbs-down';
+      }
+      if ($icon) {
+         $icon = ' <span class="glyphicon ' . $icon . '"></span>';
+      }
+      $h .= Html::table_footer_row(
+         ' <span title="Daily balance corrected using recurrence">'
+         //
+          . '<b style="color:#00f">Sum</b> ' . printsum($this->get_timedsum(), true) . $icon . '</span> &nbsp; ' //
           . '<span class="transp" title="Daily balance"><b style="color:#f00">Sum*</b> ' //
           . printsum($this->get_sum()) . '</span>' //
-          . ' &nbsp; <a href="javascript://" title="Show recurring entries" class="getlongitems" data-ud="' . $this->uday->ud() . '">L</a>');
-      }
+          . ' &nbsp; <a href="javascript://" title="Show recurring entries" class="getlongitems_action" data-ud="' . $this->uday->ud() . '">L</a>'
+      );
 
       return $h;
    }
@@ -141,7 +154,7 @@ class Day {
       }
       */
       foreach ($this->longitems as $item) {
-         $out.= $item->to_html_line();
+         $out .= $item->to_html_line();
       }
       return '<table>' . $out . '</table>';
    }
