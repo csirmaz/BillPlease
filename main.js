@@ -10,7 +10,7 @@ BP = {
       }
       alert(msg + ' is not a number');
       return false;
-   }
+   },
 
    // Check if a string is an integer
    checkint: function(v, msg){
@@ -27,5 +27,15 @@ $(function(){
 
    // Tooltips
    $('.bptooltip').tooltip();
+
+   $('.bpnavigate').on('click', function(){
+      document.urlap.akcio.value = 'list'; // TODO
+      var $this = $(this);
+      document.urlap.viewday.value -= (-$this.data('offset'));
+      var absolute = $this.data('absolute');
+      if(typeof(absolute) != 'undefined'){ document.urlap.viewday.value = absolute; }
+      document.urlap.submit();
+      return false;
+   });
 
 });
