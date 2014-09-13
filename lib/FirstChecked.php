@@ -26,7 +26,10 @@ class FirstChecked {
    public $js_unc;
    public $js_unc_gb;
 
-   public function __construct($DB, $Solder) {
+   public function init() {
+      $DB = Application::get()->db();
+      $Solder = Application::get()->solder();
+
       $me = $this; // Needed by PHP 5.3
       $DB->query_callback(
          'select distinct accountto from costs',
