@@ -27,11 +27,9 @@ class Html {
 
       /* TODO Re-implement
       // No click handlers are added if $year===FALSE
-      $newon = '';
       $piechart = '';
       if ($year !== false) {
          $idx = $year . ',' . $month . ',' . $day;
-         $newon = 'onclick="newon(' . $idx . ')" title="Click to create a new entry on this day"';
          $piechart = 'onclick="piec(' . $idx . ')" title="Click to draw pie chart FROM this day"';
       }
       */
@@ -45,11 +43,11 @@ class Html {
          $title = date('D d M Y', $ut) . ' (Week ' . date('W', $ut) . ')';
       }
 
-      return Application::get()->solder()->make('item_header', array('title' => $title));
+      return Application::get()->solder()->fuse('item_header', array('title' => $title, 'uday' => $unixday));
    }
 
    public static function table_footer_row($content) {
-      return Application::get()->solder()->make('item_footer', array('$content' => $content));
+      return Application::get()->solder()->fuse('item_footer', array('$content' => $content));
    }
 
    public static function esc($s) {
@@ -65,7 +63,7 @@ class Html {
          'select * from accountnames where length(accounttofrom) < (?+0) order by listorder',
          array(($singleonly ? 2 : 3)),
          function ($r) use (&$accountselector, $current, $SLD) {
-            $accountselector .= $SLD->make(
+            $accountselector .= $SLD->fuse(
                'option',
                array(
                   'value' => $r['accounttofrom'],
@@ -85,7 +83,7 @@ class Html {
          'select sign,name from ctypes order by listorder',
          false, //
          function ($r) use (&$typeselector, $current, $SLD) {
-            $typeselector .= $SLD->make(
+            $typeselector .= $SLD->fuse(
                'option',
                array(
                   'value' => $r['sign'],
@@ -102,7 +100,7 @@ class Html {
       $SLD = Application::get()->solder();
       $checkedselector = '';
       foreach (array(0 => 'no', 1 => 'green', 3 => 'blue', 2 => 'yellow') as $v => $d) {
-         $checkedselector .= $SLD->make(
+         $checkedselector .= $SLD->fuse(
             'option',
             array(
                'value' => $v,
@@ -124,9 +122,9 @@ class Html {
          'select * from shortcuts',
          false,
          function ($r) use (&$javascript, &$legend, $form, $SLD) {
-            $legend .= $SLD->make('shortcut_legend', $r);
+            $legend .= $SLD->fuse('shortcut_legend', $r);
 
-            $javascript .= $SLD->make('shortcut_if', array('$form' => $form, 'shortcut' => $r['shortcut'])) . '{';
+            $javascript .= $SLD->fuse('shortcut_if', array('$form' => $form, 'shortcut' => $r['shortcut'])) . '{';
 
             foreach (array(
                'name' => 'name',
@@ -137,18 +135,18 @@ class Html {
                'clong' => 'long'
             ) as $d => $h) {
                if (!is_null($r[$d])) {
-                  $javascript .= $SLD->make('shortcut_assign', array('$form' => $form, 'name' => $h, 'value' => $r[$d]));
+                  $javascript .= $SLD->fuse('shortcut_assign', array('$form' => $form, 'name' => $h, 'value' => $r[$d]));
                }
             }
 
             if (!is_null($r['value'])) {
-               $javascript .= $SLD->make(
+               $javascript .= $SLD->fuse(
                   'shortcut_assign',
                   array('$form' => $form, 'name' => 'value', 'value' => ($r['value'] / 100))
                );
             }
             if (!is_null($r['accountto'])) {
-               $javascript .= $SLD->make(
+               $javascript .= $SLD->fuse(
                   'shortcut_assign',
                   array(
                      '$form' => $form,

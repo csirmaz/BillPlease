@@ -48,7 +48,7 @@ class Application {
       $this->db = new CostsDB(new SQLite3($config['database_file']));
       $this->db->exec('PRAGMA case_sensitive_like=OFF');
 
-      $this->solder = new Solder($config['template_file']);
+      $this->solder = new Solder($config['template_file'], $config['language']);
 
       $this->lock = new CostLock($config['lock_file']);
 

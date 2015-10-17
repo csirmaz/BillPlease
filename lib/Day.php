@@ -121,23 +121,12 @@ class Day {
       }
 
       // footer
-      $icon = false;
-      if ($this->get_timedsum() < - 2) {
-         $icon = 'bpicon_saved glyphicon-heart-empty';
-      }
-      if ($this->get_timedsum() > 0) {
-         $icon = 'bpicon_lost glyphicon-thumbs-down';
-      }
-      if ($icon) {
-         $icon = ' <span class="glyphicon ' . $icon . '"></span>';
-      }
       $h .= Html::table_footer_row(
-         ' <span title="Daily balance corrected using recurrence">'
-         //
-          . '<b style="color:#00f">Sum</b> ' . printsum($this->get_timedsum(), true) . $icon . '</span> &nbsp; ' //
-          . '<span class="transp" title="Daily balance"><b style="color:#f00">Sum*</b> ' //
-          . printsum($this->get_sum()) . '</span>' //
-          . ' &nbsp; <a href="javascript://" title="Show recurring entries" class="getlongitems_action" data-ud="' . $this->uday->ud() . '">L</a>'
+         Application::get()->solder()->fuse('day_footer', array(
+            '$timedsum' => printsum($this->get_timedsum(), true),
+            '$sum' => printsum($this->get_sum()),
+            'ud' => $this->uday->ud()
+         ))
       );
 
       return $h;

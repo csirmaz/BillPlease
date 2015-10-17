@@ -77,7 +77,7 @@ class Item extends ItemData {
    public function to_html_form($DB) {
 
       // TODO Move selector constructors to single class
-      return Application::get()->solder()->make(
+      return Application::get()->solder()->fuse(
          'item_as_form',
          array( //
             'dayid' => $this->dayid,
@@ -134,7 +134,7 @@ class Item extends ItemData {
       $style_acc .= ' bpacc_' . strtolower($this->accountto); // account identifier; see Html::css_accounts
       $idx = $this->uday->year() . ',' . $this->uday->month() . ',' . $this->uday->day() . ',' . $this->dayid;
 
-      return Application::get()->solder()->make(
+      return Application::get()->solder()->fuse(
          'item',
          array(
             '$class_tr' => $style_row,

@@ -39,8 +39,8 @@ class FirstChecked {
                'select accountto,year,month,day,id from costs where accountto=? and checked=0 order by year,month,day,dayid limit 1',
                array($racc['accountto']),
                function ($r) use ($Solder, $me) {
-                  $me->html_unc .= $Solder->make(
-                     'first_item',
+                  $me->html_unc .= $Solder->fuse(
+                     'firstchecked_item',
                      array(
                         'acc' => $r['accountto'],
                         'y' => $r['year'],
@@ -48,8 +48,8 @@ class FirstChecked {
                         'd' => $r['day']
                      )
                   );
-                  $me->js_unc .= $Solder->make(
-                     'first_jsitem',
+                  $me->js_unc .= $Solder->fuse(
+                     'firstchecked_jsitem',
                      array('$id' => Item::static_item_id_css($r['id']), '$class' => 'bpfirst_unc')
                   );
                }
@@ -59,8 +59,8 @@ class FirstChecked {
                'select accountto,year,month,day,id from costs where accountto=? and checked in(1,3) order by year,month,day,dayid limit 1',
                array($racc['accountto']),
                function ($r) use ($Solder, $me) {
-                  $me->html_unc_gb .= $Solder->make(
-                     'first_item',
+                  $me->html_unc_gb .= $Solder->fuse(
+                     'firstchecked_item',
                      array(
                         'acc' => $r['accountto'],
                         'y' => $r['year'],
@@ -68,7 +68,7 @@ class FirstChecked {
                         'd' => $r['day']
                      )
                   );
-                  $me->js_unc_gb .= $Solder->make(
+                  $me->js_unc_gb .= $Solder->fuse(
                      'first_jsitem',
                      array('$id' => Item::static_item_id_css($r['id']), '$class' => 'bpfirst_unc_gb')
                   );
@@ -80,8 +80,8 @@ class FirstChecked {
 
    /** Returns HTML to describe the first items */
    public function gethtml() {
-      return Application::get()->solder()->make(
-         'first_note',
+      return Application::get()->solder()->fuse(
+         'firstchecked_note',
          array('$unc' => $this->html_unc, '$unc_gb' => $this->html_unc_gb)
       );
    }

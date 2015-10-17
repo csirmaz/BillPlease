@@ -22,9 +22,6 @@
 class ItemData {
    protected $id;
 
-   protected $year;
-   protected $month;
-   protected $day;
    protected $uday; /*< UnixDay object */
    protected $udayto; /*< UnixDay object; $uday+$timespan */
 
@@ -65,6 +62,11 @@ class ItemData {
    /** Alternative constructor */
    public static function new_empty_on($year, $month, $day) {
       return self::from_raw(array('dayid' => - 1, 'year' => $year, 'month' => $month, 'day' => $day));
+   }
+
+   /** Alternative constructor */
+   public static function new_empty_on_uday($uday) {
+      return self::from_raw(array('dayid' => - 1, 'unixday' => $uday));
    }
 
    /** Constructs an object from raw, possibly incomplete data.
