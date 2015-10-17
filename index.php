@@ -35,5 +35,6 @@ require $PATH . '/Day.php';
 require $PATH . '/Html.php';
 require $PATH . '/CType.php';
 require $PATH . '/FirstChecked.php';
+require $PATH . '/Summary.php';
 
 ?>

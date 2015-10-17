@@ -123,7 +123,7 @@ class Day {
       // footer
       $h .= Html::table_footer_row(
          Application::get()->solder()->fuse('day_footer', array(
-            '$timedsum' => printsum($this->get_timedsum(), true),
+            '$timedsum' => printsum($this->get_timedsum()),
             '$sum' => printsum($this->get_sum()),
             'ud' => $this->uday->ud()
          ))
