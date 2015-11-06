@@ -30,6 +30,35 @@ BP = {
 
 // Initialisations
 $(function(){
+   
+   (function(){
+      var $bphf = $('#bplist_header_fix');
+      if($bphf.length){ // Only on list pages
+      
+         // Interact with the cookie storing details of the list
+         var ListData = (Cookies.getJSON('list') || {});
+         var getListData = function(key, defvalue){ return (typeof(ListData[key]) == 'undefined' ? defvalue : ListData[key]); }
+         var setListData = function(key, value){ ListData[key] = value; Cookies.set('list', ListData); }
+         var delListData = function(key){ delete ListData[key]; Cookies.set('list', ListData); }
+         
+         // Add space to make content visible under the fixed header
+         var $bph = $('#bplist_header');
+         var fixheader = function(){
+            $bphf.css('height', $bph.height() + 'px');
+         };
+         fixheader();
+         setInterval(fixheader, 2000);
+         
+         // Sticky scroll position
+         $('body').on('click', function(){
+            setListData('scroll', document.body.scrollTop); // Save scroll position
+         });
+         // Initialise scroll position
+         document.body.scrollTop = getListData('scroll', $('#bplist').height());
+
+      } // Only on list pages -- ends
+   })();
+  
 
    $('.bpnavigate').on('click', function(){
       document.urlap.akcio.value = 'list'; // TODO
@@ -38,7 +67,7 @@ $(function(){
       var absolute = $this.data('absolute');
       if(typeof(absolute) != 'undefined'){ document.urlap.viewday.value = absolute; }
       document.urlap.submit();
-      return false;
+      return true;
    });
 
    $('.bpheader .bpname').on('click', function(){
@@ -46,7 +75,7 @@ $(function(){
       var $this = $(this);
       document.urlap.iuday.value = $this.closest('.bpheader').data('uday');
       document.urlap.submit();
-      return false;
+      return true;
    });
 
    $('.calculator').on('click', function(){
