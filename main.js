@@ -1,5 +1,13 @@
 
 BP = {
+   
+   // Functions to interact with the cookie storing UI data
+   Storage: { 
+      data: (Cookies.getJSON('storage') || {}),
+      get: function(key, defvalue){ return (typeof(BP.Storage.data[key]) == 'undefined' ? defvalue : BP.Storage.data[key]); },
+      set: function(key, value){ BP.Storage.data[key] = value; Cookies.set('storage', BP.Storage.data); },
+      del: function(key){ delete BP.Storage.data[key]; Cookies.set('storage', BP.Storage.data); }
+   },
 
    // Check if a string is a float
    checkfl: function(v, msg){
@@ -31,34 +39,27 @@ BP = {
 // Initialisations
 $(function(){
    
-   (function(){
-      var $bphf = $('#bplist_header_fix');
-      if($bphf.length){ // Only on list pages
+   var $bphf = $('#bplist_header_fix');
+   
+   if($bphf.length){ // Only on list pages
+            
+      // Add space to make content visible under the fixed header
+      var $bph = $('#bplist_header');
+      var fixheader = function(){
+         $bphf.css('height', $bph.height() + 'px');
+      };
+      fixheader();
+      setInterval(fixheader, 2000);
       
-         // Interact with the cookie storing details of the list
-         var ListData = (Cookies.getJSON('list') || {});
-         var getListData = function(key, defvalue){ return (typeof(ListData[key]) == 'undefined' ? defvalue : ListData[key]); }
-         var setListData = function(key, value){ ListData[key] = value; Cookies.set('list', ListData); }
-         var delListData = function(key){ delete ListData[key]; Cookies.set('list', ListData); }
-         
-         // Add space to make content visible under the fixed header
-         var $bph = $('#bplist_header');
-         var fixheader = function(){
-            $bphf.css('height', $bph.height() + 'px');
-         };
-         fixheader();
-         setInterval(fixheader, 2000);
-         
-         // Sticky scroll position
-         $('body').on('click', function(){
-            setListData('scroll', document.body.scrollTop); // Save scroll position
-         });
-         // Initialise scroll position
-         document.body.scrollTop = getListData('scroll', $('#bplist').height());
+      // Sticky scroll position
+      $('body').on('click', function(){
+         BP.Storage.set('listscroll', document.body.scrollTop); // Save scroll position
+      });
+      // Initialise scroll position
+      document.body.scrollTop = BP.Storage.get('listscroll', $('#bplist').height());
 
-      } // Only on list pages -- ends
-   })();
-  
+   } // Only on list pages -- ends
+      
 
    $('.bpnavigate').on('click', function(){
       document.urlap.akcio.value = 'list'; // TODO
