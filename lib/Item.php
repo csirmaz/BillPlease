@@ -124,10 +124,6 @@ class Item extends ItemData {
             $style_row .= ' bpbusiness';
          }
 
-         if (strstr($this->name, '!?') !== FALSE) {
-            $style_row .= ' bpuncertain';
-         }
-
       }
 
       $style_acc = 'bpchkd bpchkd_' . ($this->checked + 0); // checked
