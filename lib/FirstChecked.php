@@ -69,7 +69,7 @@ class FirstChecked {
                      )
                   );
                   $me->js_unc_gb .= $Solder->fuse(
-                     'first_jsitem',
+                     'firstchecked_jsitem',
                      array('$id' => Item::static_item_id_css($r['id']), '$class' => 'bpfirst_unc_gb')
                   );
                }
