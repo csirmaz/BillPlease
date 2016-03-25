@@ -22,9 +22,7 @@
 
 class FirstChecked {
    public $html_unc = ''; // Needs to be public as $me below cannot access it otherwise (PHP 5.3)
-   public $html_unc_gb = '';
    public $js_unc;
-   public $js_unc_gb;
 
    public function init() {
       $DB = Application::get()->db();
@@ -54,26 +52,6 @@ class FirstChecked {
                   );
                }
             );
-            // Index: costs_accto_c
-            $DB->query_callback(
-               'select accountto,year,month,day,id from costs where accountto=? and checked in(1,3) order by year,month,day,dayid limit 1',
-               array($racc['accountto']),
-               function ($r) use ($Solder, $me) {
-                  $me->html_unc_gb .= $Solder->fuse(
-                     'firstchecked_item',
-                     array(
-                        'acc' => $r['accountto'],
-                        'y' => $r['year'],
-                        'm' => $r['month'],
-                        'd' => $r['day']
-                     )
-                  );
-                  $me->js_unc_gb .= $Solder->fuse(
-                     'firstchecked_jsitem',
-                     array('$id' => Item::static_item_id_css($r['id']), '$class' => 'bpfirst_unc_gb')
-                  );
-               }
-            );
          }
       );
    }
@@ -82,13 +60,13 @@ class FirstChecked {
    public function gethtml() {
       return Application::get()->solder()->fuse(
          'firstchecked_note',
-         array('$unc' => $this->html_unc, '$unc_gb' => $this->html_unc_gb)
+         array('$unc' => $this->html_unc)
       );
    }
 
    /** Returns JS code to mark the first items */
    public function getjs() {
-      return $this->js_unc . $this->js_unc_gb;
+      return $this->js_unc;
    }
 
 }

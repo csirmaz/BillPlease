@@ -99,7 +99,7 @@ class Html {
    public static function checkedselector($current) {
       $SLD = Application::get()->solder();
       $checkedselector = '';
-      foreach (array(0 => 'no', 1 => 'green', 3 => 'blue', 2 => 'yellow') as $v => $d) {
+      foreach (array(0 => 'No', 2 => 'Yes') as $v => $d) {
          $checkedselector .= $SLD->fuse(
             'option',
             array(
