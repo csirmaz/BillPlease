@@ -186,10 +186,10 @@ class Html {
          false,
          function ($r) use (&$acccss) {
             if (!is_null($r['checkedcss'])) {
-               $acccss .= '.bpitem .bpacc_' . strtolower($r['accounttofrom']) . '.bpchkd input {' . $r['checkedcss'] . "}\n";
+               $acccss .= '.bpitem .bpacc_' . strtolower($r['accounttofrom']) . '.bpchkd .bpchkd_in {' . $r['checkedcss'] . "}\n";
             }
             if (!is_null($r['checkednotcss'])) {
-               $acccss .= '.bpitem .bpacc_' . strtolower($r['accounttofrom']) . '.bpchkd_0 input {' . $r['checkednotcss'] . "}\n";
+               $acccss .= '.bpitem .bpacc_' . strtolower($r['accounttofrom']) . '.bpchkd_0 .bpchkd_in {' . $r['checkednotcss'] . "}\n";
             }
          }
       );

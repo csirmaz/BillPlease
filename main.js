@@ -39,46 +39,62 @@ BP = {
 // Initialisations
 $(function(){
    
-   var $bphf = $('#bplist_header_fix');
+    var $bpt = $('#bplist_tools');
    
-   if($bphf.length){ // Only on list pages
+    if($bpt.length){ // Only on list pages
             
-      // Add space to make content visible under the fixed header
-      var $bph = $('#bplist_header');
-      var fixheader = function(){
-         $bphf.css('height', $bph.height() + 'px');
-      };
-      fixheader();
-      setInterval(fixheader, 2000);
+        // Add space to make content visible under the fixed tools area
+        var fixtools = function(){
+            $('#bplist').css('padding-bottom', $bpt.height() + 'px');
+        };
+        fixtools();
+        setInterval(fixtools, 2000);
+
+        // Sticky scroll position
+        $('body').on('click', function(){
+            BP.Storage.set('listscroll', document.body.scrollTop); // Save scroll position
+        });
+        // Initialise scroll position
+        document.body.scrollTop = BP.Storage.get('listscroll', $('#bplist').height());
+
+        // Search
+        $('.searchform a').on('click', function(){
+            document.location.search = 'view=search&t=' + encodeURIComponent($('.searchform input').val());
+        });
+
+        // Modify an item
+        $('.bpitem .bpitem_action.modify').on('click', function(e){
+            document.location.search = 'view=edit&mode=modify&id=' + $(this).closest('.bpitem').data('id'); 
+            e.preventDefault();
+        });
+
+        // Add new entry on given day
+        $('.bpheader .bpitem_action.add').on('click', function(e){
+            document.location.search = 'view=edit&mode=new-on&ud=' + $(this).closest('.bpheader').data('uday'); 
+            e.preventDefault();
+        });
+        
+        // Toggle the checked status of an item
+        $('.bpitem .bpchkd_in').on('click', function(e){
+            document.location.search = 'action=check&id=' + $(this).closest('.bpitem').data('id'); 
+            e.preventDefault();
+        });
+
+    } // Only on list pages -- ends
       
-      // Sticky scroll position
-      $('body').on('click', function(){
-         BP.Storage.set('listscroll', document.body.scrollTop); // Save scroll position
-      });
-      // Initialise scroll position
-      document.body.scrollTop = BP.Storage.get('listscroll', $('#bplist').height());
 
-   } // Only on list pages -- ends
-      
-
-   $('.bpnavigate').on('click', function(){
-      document.urlap.akcio.value = 'list'; // TODO
-      var $this = $(this);
-      document.urlap.viewday.value -= (-$this.data('offset'));
-      var absolute = $this.data('absolute');
-      if(typeof(absolute) != 'undefined'){ document.urlap.viewday.value = absolute; }
-      document.urlap.submit();
-      return true;
+    // Navigating in time
+    $('.bpnavigate').on('click', function(e){
+        var $this = $(this);
+        var o = BP.Storage.get('dayoffset');
+        o -= (-$this.data('offset'));
+        var absolute = $this.data('absolute');
+        if(typeof(absolute) != 'undefined'){ o = absolute; }
+        BP.Storage.set('dayoffset', o);
+        document.location.search = 'view=list';
+        e.preventDefault();
    });
-
-   $('.bpheader .bpname').on('click', function(){
-      document.urlap.akcio.value = 'newon'; // TODO
-      var $this = $(this);
-      document.urlap.iuday.value = $this.closest('.bpheader').data('uday');
-      document.urlap.submit();
-      return true;
-   });
-
+   
    $('.calculator').on('click', function(){
       var s = 0;
       var x;

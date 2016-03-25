@@ -128,14 +128,13 @@ class Item extends ItemData {
 
       $style_acc = 'bpchkd bpchkd_' . ($this->checked + 0); // checked
       $style_acc .= ' bpacc_' . strtolower($this->accountto); // account identifier; see Html::css_accounts
-      $idx = $this->uday->year() . ',' . $this->uday->month() . ',' . $this->uday->day() . ',' . $this->dayid;
 
       return Application::get()->solder()->fuse(
          'item',
          array(
+            'id' => $this->id,
             '$class_tr' => $style_row,
             'date' => ($adddate ? date('D d M Y', $this->uday->ud() * 24 * 60 * 60) : ''),
-            '$idx' => $idx,
             'name' => $this->name,
             'comment' => mb_substr($this->clong, 0, 16),
             '$value' => printsum($this->value, false, false),
