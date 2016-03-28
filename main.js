@@ -63,13 +63,13 @@ $(function(){
         });
 
         // Modify an item
-        $('.bpitem .bpitem_action.modify').on('click', function(e){
+        $('.bpitem .bpname').on('click', function(e){
             document.location.search = 'view=edit&mode=modify&id=' + $(this).closest('.bpitem').data('id'); 
             e.preventDefault();
         });
 
         // Add new entry on given day
-        $('.bpheader .bpitem_action.add').on('click', function(e){
+        $('.bpheader .bpname').on('click', function(e){
             document.location.search = 'view=edit&mode=new-on&ud=' + $(this).closest('.bpheader').data('uday'); 
             e.preventDefault();
         });
