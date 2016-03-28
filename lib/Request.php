@@ -21,9 +21,38 @@
 /** This class makes data in the request accessible */
 class Request {
 
+   private $view;
+   private $storage;
+   private $action;
+
+   public function __construct(){
+      if(isset($_POST['view'])){
+         $this->view = $_POST['view'];
+         $this->action = $_POST['action'];
+      }
+      else{
+         $this->view = $_GET['view'];
+         $this->action = $_GET['action'];
+      }
+
+      $this->storage = json_decode($_COOKIE['storage'], true);
+   }
+   
+   // Possible values: list
+   public function get_view(){ return $this->view; }
+   
+   // Possible values: new
+   public function get_action(){ return $this->action; }
+   
+   // Keys: listscroll
+   public function get_storage($key){ return $this->storage[$key]; }
+
    public function get_value($key) {
       if (!isset($_POST[$key])) {
-         throw new Exception("Missing data '$key'");
+         if (!isset($_GET[$key])) {
+            throw new Exception("Missing data '$key'");
+         }
+         return $_GET[$key];
       }
       return $_POST[$key];
    }
@@ -62,7 +91,7 @@ class Request {
    public function get_year($key) {
       $value = $this->get_value($key);
       $this->_check_int($value, 'Year');
-      if ($value < 2000 || $value > 2200) {
+      if ($value < 1970 || $value > 2200) {
          throw new Exception("Year '$value' is out of range");
       }
       return $value;
