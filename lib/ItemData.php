@@ -32,6 +32,7 @@ class ItemData {
    protected $accountto;
    protected $accountfrom;
    protected $checked;
+   protected $optional;
    protected $ctype; /*< in the object, can be 'X'; in the DB, empty string is used */
    protected $business;
    protected $clong;
@@ -84,6 +85,8 @@ class ItemData {
       }
       // fix business -> 1/0
       $attrs['business'] = (isset($attrs['business']) && $attrs['business']) ? 1 : 0;
+      // fix optional -> 1/0
+      $attrs['optional'] = (isset($attrs['optional']) && $attrs['optional']) ? 1 : 0;
       // fix checked
       if ((!isset($attrs['checked'])) || $attrs['checked'] == '') {
          $attrs['checked'] = 0;
@@ -224,6 +227,7 @@ class ItemData {
          'accountto',
          'accountfrom',
          'checked',
+         'optional',
          'ctype',
          'business',
          'clong',
@@ -271,7 +275,7 @@ class ItemData {
          $placeholders[] = '?';
          $values[] = $v;
       }
-
+      
       $DB->exec_assert_change(
          'insert into costs (' . implode(',', $names) . ') values (' . implode(',', $placeholders) . ')',
          $values,

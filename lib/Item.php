@@ -55,7 +55,7 @@ class Item extends ItemData {
          // if edit, but date has been edited, we need a new dayid
          $dayid = - 1;
       }
-
+      
       self::from_raw(
          array(
             'unixday' => $newunixday,
@@ -64,7 +64,8 @@ class Item extends ItemData {
             'value' => $RequestObj->get_money('value'),
             'timespan' => $RequestObj->get_int('fortime'),
             'accounts' => $RequestObj->get_value('account'),
-            'checked' => $RequestObj->get_value('checked'),
+            'checked' => $RequestObj->get_checkbox('checked') ? 2 : 0,
+            'optional' => $RequestObj->get_checkbox('optional'),
             'ctype' => $RequestObj->get_value('type'),
             'business' => $RequestObj->get_checkbox('business'),
             'clong' => $RequestObj->get_value('long')
@@ -90,7 +91,8 @@ class Item extends ItemData {
             '$accountselector' => Html::accountselector($DB, $this->accountto . $this->accountfrom),
             '$fortimeselector' => Texts::timespanselector($this->timespan),
             '$typeselector' => Html::typeselector($DB, $this->ctype),
-            '$checkedselector' => Html::checkedselector($this->checked),
+            '$cchecked' => ($this->checked == 2 ? 'checked="checked"' : ''),
+            '$coptional' => ($this->optional == 1 ? 'checked="checked"' : ''),
             '$cbusiness' => ($this->business == 1 ? 'checked="checked"' : ''),
             'clong' => $this->clong
          )
@@ -147,16 +149,17 @@ class Item extends ItemData {
       );
    }
 
-   public function to_html_line() {
+   public function to_html_line($ud_now) {
       $perday = $this->value / $this->timespan;
       return '<tr><td>' . implode(
          '</td><td>',
          array(
-            $this->uday->year() . '-' . $this->uday->month() . '-' . $this->uday->day(),
+            $this->uday->simple_string(),
             $this->name,
             printsum($this->value),
             printsum($perday * 365 / 12) . '/m ',
-            printsum($perday) . '/d'
+            printsum($perday) . '/d',
+            ($this->uday->ud() + $this->timespan - $ud_now->ud()) // Remaining days
          )
       ) . '</td></tr>';
    }
