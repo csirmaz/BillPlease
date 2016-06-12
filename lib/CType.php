@@ -50,7 +50,7 @@ class CType {
     * If $timed is true, adjust the sum according to the timespan of the items.
     * $dayfrom and $dayto are inclusive.
     */
-   public function sum($dayfrom, $dayto, $timed = false) {
+   public function sum($dayfrom, $dayto, $timed = false, $maxvalue = false) {
       // This keeps the ordering right!
       foreach ($this->types as $sign => $val) {
          $this->sums[$sign] = 0;
@@ -65,7 +65,7 @@ class CType {
       $this->DB->query_callback(
          $query,
          array($dayfrom, $dayto),
-         function ($r) use ($dayto, $dayfrom, $timed) {
+         function ($r) use ($dayto, $dayfrom, $timed, $maxvalue) {
             $item = Item::from_db($r);
             $t = $this->types[$item->get_ctype() ];
             $v = $item->realvalue();
@@ -74,6 +74,8 @@ class CType {
                $visiblespan = min($dayto, $item->get_unixdayto() - 1) - max($dayfrom, $item->get_unixday()) + 1;
                $v = $v * $visiblespan / $item->get_timespan();
             }
+
+            if($maxvalue !== false && $v > $maxvalue){ $v = $maxvalue; }
 
             if ($v < 0) { // income
                $this->gensums['+'] -= $v;
