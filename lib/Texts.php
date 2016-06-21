@@ -34,7 +34,8 @@ class Texts {
    30 => 'monthly*', //
    31 => 'monthly', //
    91 => 'quarterly*', //
-   182 => 'half a year*');
+   182 => 'half a year*', //
+   365 => 'yearly*' );
 
    /** Returns the name of the system */
    public static function systitle() {
