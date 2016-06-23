@@ -18,6 +18,10 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() - 60*60*24));
+header("Pragma: no-cache");
+header("Cache-Control: no-cache, must-revalidate");
+
 $PATH = dirname(__FILE__) . '/lib';
 
 require $PATH . '/sqlbrite/sqlbrite.php';
@@ -29,6 +33,7 @@ require $PATH . '/Application.php';
 require $PATH . '/Texts.php';
 require $PATH . '/Request.php';
 require $PATH . '/Control.php';
+require $PATH . '/View.php';
 require $PATH . '/ItemData.php';
 require $PATH . '/Item.php';
 require $PATH . '/Day.php';
