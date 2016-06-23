@@ -62,12 +62,12 @@ class ItemData {
 
    /** Alternative constructor */
    public static function new_empty_on($year, $month, $day) {
-      return self::from_raw(array('dayid' => - 1, 'year' => $year, 'month' => $month, 'day' => $day));
+      return self::from_raw(array('id' => -1, 'dayid' => - 1, 'year' => $year, 'month' => $month, 'day' => $day));
    }
 
    /** Alternative constructor */
    public static function new_empty_on_uday($uday) {
-      return self::from_raw(array('dayid' => - 1, 'unixday' => $uday));
+      return self::from_raw(array('id' => -1, 'dayid' => - 1, 'unixday' => $uday));
    }
 
    /** Constructs an object from raw, possibly incomplete data.
@@ -137,11 +137,6 @@ class ItemData {
 
    public function get_dayid() {
       return $this->dayid;
-   }
-
-   public function reset_dayid() {
-      $this->dayid = - 1;
-      return $this;
    }
 
    public function get_name() {
@@ -282,6 +277,13 @@ class ItemData {
          1
       );
    }
+   
+    /** Toggle the checked status of the item */
+    public static function toggle_checked($DB, $id) {
+        $cur = $DB->querysinglerow('select checked,accountto from costs where id = ?',array($id));
+        $cur = $cur['checked'];
+        $DB->exec_assert_change('update costs set checked = ? where id = ?',array(($cur > 0 ? 0 : 2), $id),1);
+    }
 
 }
 

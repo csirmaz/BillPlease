@@ -21,10 +21,10 @@
 class Item extends ItemData {
 
    /** Parses a HTML form submission and deletes an item */
-   public static function delete_on_html_form($RequestObj, $DB) {
+   public static function delete_on_id($id, $DB) {
       $DB->exec_assert_change(
-         'DELETE FROM costs WHERE unixday = ? AND dayid = ?',
-         array($RequestObj->get_int('oldiuday'), $RequestObj->get_int('oldidayid')),
+         'DELETE FROM costs WHERE id = ?',
+         array($id),
          1
       );
 
@@ -81,6 +81,7 @@ class Item extends ItemData {
       return Application::get()->solder()->fuse(
          'item_as_form',
          array( //
+            'id' => $this->id,
             'dayid' => $this->dayid,
             'unixday' => $this->uday->ud(),
             'year' => $this->uday->year(),
