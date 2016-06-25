@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2013 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2016 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -25,18 +25,12 @@ class Request {
    private $storage;
    private $action;
 
-   public function __construct(){
-      if(isset($_POST['view'])){
-         $this->view = $_POST['view'];
-         $this->action = $_POST['action'];
-      }
-      else{
-         $this->view = $_GET['view'];
-         $this->action = $_GET['action'];
-      }
+    public function __construct(){
+        $this->view = self::get_value('view', true);
+        $this->action = self::get_value('action', true);
 
-      $this->storage = json_decode($_COOKIE['storage'], true);
-   }
+        $this->storage = json_decode($_COOKIE['storage'], true);
+    }
    
    // Possible values: list
    public function get_view(){ return $this->view; }
@@ -47,10 +41,11 @@ class Request {
    // Keys: listscroll
    public function get_storage($key){ return $this->storage[$key]; }
 
-   public function get_value($key) {
+   public static function get_value($key, $noexception=false) {
       if (!isset($_POST[$key])) {
          if (!isset($_GET[$key])) {
-            throw new Exception("Missing data '$key'");
+            if(!$noexception){ throw new Exception("Missing data '$key'"); }
+            return '';
          }
          return $_GET[$key];
       }
