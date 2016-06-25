@@ -20,181 +20,171 @@
 
 class Html {
 
-   // Returns header table row.
-   // $unixday is calculated if it is FALSE.
-   // $title defaults to the date if FALSE is given.
-   public static function table_header_row($title, $year, $month, $day, $unixday = false, $adddate = false) {
+    // TODO move to View?
+    // Returns header table row.
+    // $unixday is calculated if it is FALSE.
+    // $title defaults to the date if FALSE is given.
+    public static function table_header_row($title, $year, $month, $day, $unixday = false, $adddate = false) {
 
-      /* TODO Re-implement
-      // No click handlers are added if $year===FALSE
-      $piechart = '';
-      if ($year !== false) {
+        /* TODO Re-implement
+        // No click handlers are added if $year===FALSE
+        $piechart = '';
+        if ($year !== false) {
          $idx = $year . ',' . $month . ',' . $day;
          $piechart = 'onclick="piec(' . $idx . ')" title="Click to draw pie chart FROM this day"';
-      }
-      */
+        }
+        */
 
-      if ($unixday === false) {
-         $unixday = CostsDB::date2unixday($year, $month, $day);
-      }
+        if($unixday === false) {
+            $unixday = CostsDB::date2unixday($year, $month, $day);
+        }
 
-      if ($title === false) {
-         $ut = $unixday * 24 * 60 * 60;
-         $title = date('D d M Y', $ut) . ' (Week ' . date('W', $ut) . ')';
-      }
+        if($title === false) {
+            $ut = $unixday * 24 * 60 * 60;
+            $title = date('D d M Y', $ut) . ' (Week ' . date('W', $ut) . ')';
+        }
 
-      return Application::get()->solder()->fuse('item_header', array('title' => $title, 'uday' => $unixday));
-   }
+        return Application::get()->solder()->fuse('item_header', array('title' => $title, 'uday' => $unixday));
+    }
 
-   public static function table_footer_row($content) {
-      return Application::get()->solder()->fuse('item_footer', array('$content' => $content));
-   }
+    public static function table_footer_row($content) {
+        return Application::get()->solder()->fuse('item_footer', array('$content' => $content));
+    }
 
-   public static function esc($s) {
-      return htmlspecialchars($s);
-   }
+    public static function esc($s) {
+        return htmlspecialchars($s);
+    }
 
-   /* Returns a selector */
-   public static function accountselector($DB, $current, $singleonly = false) {
-      $SLD = Application::get()->solder();
-      $accountselector = '';
-      // TODO Here we have a problem with SQLite comparing strings instead of numbers
-      $DB->query_callback(
-         'select * from accountnames where length(accounttofrom) < (?+0) order by listorder',
-         array(($singleonly ? 2 : 3)),
-         function ($r) use (&$accountselector, $current, $SLD) {
-            $accountselector .= $SLD->fuse(
-               'option',
-               array(
-                  'value' => $r['accounttofrom'],
-                  '$selected' => ($current == $r['accounttofrom'] ? 'selected="selected"' : ''),
-                  'display' => $r['name']
-               )
-            );
-         }
-      );
-      return $accountselector;
-   }
+    public static function filewithstamp($file, $path) {
+        return $file . '?' . date('ymdHis', filemtime($path . '/' . $file)); // TODO directory separator
+        
+    }
 
-   public static function typeselector($DB, $current) {
-      $SLD = Application::get()->solder();
-      $typeselector = '';
-      $DB->query_callback(
-         'select sign,name from ctypes order by listorder',
-         false, //
-         function ($r) use (&$typeselector, $current, $SLD) {
-            $typeselector .= $SLD->fuse(
-               'option',
-               array(
-                  'value' => $r['sign'],
-                  '$selected' => ($current == $r['sign'] ? 'selected="selected"' : ''),
-                  'display' => $r['sign'] . ' - ' . $r['name']
-               )
-            );
-         }
-      );
-      return $typeselector;
-   }
-
-   public static function checkedselector($current) {
-      $SLD = Application::get()->solder();
-      $checkedselector = '';
-      foreach (array(0 => 'No', 2 => 'Yes') as $v => $d) {
-         $checkedselector .= $SLD->fuse(
-            'option',
-            array(
-               'value' => $v,
-               '$selected' => ($current == $v ? 'selected="selected"' : ''),
-               'display' => $d
-            )
-         );
-      }
-      return $checkedselector;
-   }
-
-   /** Create a legend and JS code from the shortcuts table */
-   public static function shortcuts($DB) {
-      $javascript = '';
-      $legend = '';
-      $SLD = Application::get()->solder();
-      $form = 'document.urlap';
-      $DB->query_callback(
-         'select * from shortcuts',
-         false,
-         function ($r) use (&$javascript, &$legend, $form, $SLD) {
-            $legend .= $SLD->fuse('shortcut_legend', $r);
-
-            $javascript .= $SLD->fuse('shortcut_if', array('$form' => $form, 'shortcut' => $r['shortcut'])) . '{';
-
-            foreach (array(
-               'name' => 'name',
-               'timespan' => 'fortime',
-               'checked' => 'checked',
-               'ctype' => 'type',
-               'business' => 'business',
-               'clong' => 'long'
-            ) as $d => $h) {
-               if (!is_null($r[$d])) {
-                  $javascript .= $SLD->fuse('shortcut_assign', array('$form' => $form, 'name' => $h, 'value' => $r[$d]));
-               }
+    /* Returns a selector */
+    public static function accountselector($DB, $current, $singleonly = false) {
+        $SLD = Application::get()->solder();
+        $accountselector = '';
+        // TODO Here we have a problem with SQLite comparing strings instead of numbers
+        $DB->query_callback(
+            'select * from accountnames where length(accounttofrom) < (?+0) order by listorder',
+            array(($singleonly ? 2 : 3)),
+            function ($r) use (&$accountselector, $current, $SLD) {
+                $accountselector .= $SLD->fuse(
+                    'option',
+                    array(
+                        'value' => $r['accounttofrom'],
+                        '$selected' => ($current == $r['accounttofrom'] ? 'selected="selected"' : ''),
+                        'display' => $r['name']
+                    )
+                );
             }
+        );
+        return $accountselector;
+    }
 
-            if (!is_null($r['value'])) {
-               $javascript .= $SLD->fuse(
-                  'shortcut_assign',
-                  array('$form' => $form, 'name' => 'value', 'value' => ($r['value'] / 100))
-               );
+    public static function typeselector($DB, $current) {
+        $SLD = Application::get()->solder();
+        $typeselector = '';
+        $DB->query_callback(
+            'select sign,name from ctypes order by listorder',
+            false, //
+            function ($r) use (&$typeselector, $current, $SLD) {
+                $typeselector .= $SLD->fuse(
+                    'option',
+                    array(
+                        'value' => $r['sign'],
+                        '$selected' => ($current == $r['sign'] ? 'selected="selected"' : ''),
+                        'display' => $r['sign'] . ' - ' . $r['name']
+                    )
+                );
             }
-            if (!is_null($r['accountto'])) {
-               $javascript .= $SLD->fuse(
-                  'shortcut_assign',
-                  array(
-                     '$form' => $form,
-                     'name' => 'account',
-                     'value' => $r['accountto'] . $r['accountfrom']
-                  )
-               );
-            }
+        );
+        return $typeselector;
+    }
 
-            $javascript .= "}\n";
-         }
-      );
-      return array('legend' => $legend, 'js' => $javascript);
-   }
+    /** Create a legend and JS code from the shortcuts table */
+    public static function shortcuts($DB) {
+        $javascript = '';
+        $legend = '';
+        $SLD = Application::get()->solder();
+        $form = 'document.bp_itemedit';
+        $DB->query_callback(
+            'select * from shortcuts',
+            false,
+            function ($r) use (&$javascript, &$legend, $form, $SLD) {
+                $legend .= $SLD->fuse('shortcut_legend', $r);
 
-   /** Returns CSS rules to style the item types based on the configuration in the database */
-   public static function css_types() {
-      $typescss = '';
-      Application::get()->db()->query_callback(
-         'select sign, css from ctypes',
-         false,
-         function ($r) use (&$typescss) {
-            if (!is_null($r['css'])) {
-               $typescss .= '.bpitem .bptype_' . strtolower($r['sign']) . '{' . $r['css'] . "}\n";
-            }
-         }
-      );
-      return $typescss;
-   }
+                $javascript .= $SLD->fuse('shortcut_if', array('$form' => $form, 'shortcut' => $r['shortcut'])) . '{';
 
-   /** Returns CSS rules to style the account based on the configuration in the database */
-   /** checkedcss is applied all the time; checkednotcss is applied when the item is not checked */
-   public static function css_accounts() {
-      $acccss = '';
-      Application::get()->db()->query_callback(
-         'select accounttofrom, checkedcss, checkednotcss from accountnames where checkedcss is not null or checkednotcss is not null',
-         false,
-         function ($r) use (&$acccss) {
-            if (!is_null($r['checkedcss'])) {
-               $acccss .= '.bpitem .bpacc_' . strtolower($r['accounttofrom']) . '.bpchkd .bpchkd_in {' . $r['checkedcss'] . "}\n";
+                foreach(array(
+                    'name' => 'name',
+                    'timespan' => 'fortime',
+                    'checked' => 'checked',
+                    'ctype' => 'type',
+                    'business' => 'business',
+                    'clong' => 'long'
+                ) as $d => $h) {
+                    if(!is_null($r[$d])) {
+                        $javascript .= $SLD->fuse('shortcut_assign', array('$form' => $form, 'name' => $h, 'value' => $r[$d]));
+                    }
+                }
+
+                if(!is_null($r['value'])) {
+                    $javascript .= $SLD->fuse(
+                        'shortcut_assign',
+                        array('$form' => $form, 'name' => 'value', 'value' => ($r['value'] / 100))
+                    );
+                }
+                if(!is_null($r['accountto'])) {
+                    $javascript .= $SLD->fuse(
+                        'shortcut_assign',
+                        array(
+                            '$form' => $form,
+                            'name' => 'account',
+                            'value' => $r['accountto'] . $r['accountfrom']
+                        )
+                    );
+                }
+
+                $javascript .= "}\n";
             }
-            if (!is_null($r['checkednotcss'])) {
-               $acccss .= '.bpitem .bpacc_' . strtolower($r['accounttofrom']) . '.bpchkd_0 .bpchkd_in {' . $r['checkednotcss'] . "}\n";
+        );
+        return array('legend' => $legend, 'js' => $javascript);
+    }
+
+    /** Returns CSS rules to style the item types based on the configuration in the database */
+    public static function css_types() {
+        $typescss = '';
+        Application::get()->db()->query_callback(
+            'select sign, css from ctypes',
+            false,
+            function ($r) use (&$typescss) {
+                if(!is_null($r['css'])) {
+                    $typescss .= '.bpitem .bptype_' . strtolower($r['sign']) . '{' . $r['css'] . "}\n";
+                }
             }
-         }
-      );
-      return $acccss;
-   }
+        );
+        return $typescss;
+    }
+
+    /** Returns CSS rules to style the account based on the configuration in the database */
+    /** checkedcss is applied all the time; checkednotcss is applied when the item is not checked */
+    public static function css_accounts() {
+        $acccss = '';
+        Application::get()->db()->query_callback(
+            'select accounttofrom, checkedcss, checkednotcss from accountnames where checkedcss is not null or checkednotcss is not null',
+            false,
+            function ($r) use (&$acccss) {
+                if(!is_null($r['checkedcss'])) {
+                    $acccss .= '.bpitem .bpacc_' . strtolower($r['accounttofrom']) . '.bpchkd .bpchkd_in {' . $r['checkedcss'] . "}\n";
+                }
+                if(!is_null($r['checkednotcss'])) {
+                    $acccss .= '.bpitem .bpacc_' . strtolower($r['accounttofrom']) . '.bpchkd_0 .bpchkd_in {' . $r['checkednotcss'] . "}\n";
+                }
+            }
+        );
+        return $acccss;
+    }
 
 }
 

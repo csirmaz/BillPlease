@@ -20,149 +20,141 @@
 
 class Item extends ItemData {
 
-   /** Parses a HTML form submission and deletes an item */
-   public static function delete_on_id($id, $DB) {
-      $DB->exec_assert_change(
-         'DELETE FROM costs WHERE id = ?',
-         array($id),
-         1
-      );
+    /** Parses a HTML form submission and deletes an item */
+    public static function delete_on_id($id, $DB) {
+        $DB->exec_assert_change('DELETE FROM costs WHERE id = ?', array($id), 1);
 
-   }
+    }
 
-   /** Parses a HTML form submission and updates the DB by adding or editing an item */
-   public static function parse_html_form($RequestObj, $DB) {
+    /** Parses a HTML form submission and updates the DB by adding or editing an item */
+    public static function parse_html_form($RequestObj, $DB) {
 
-      $oldunixday = $RequestObj->get_int('oldiuday');
-      $dayid = $RequestObj->get_int('oldidayid');
+        $oldunixday = $RequestObj->get_int('oldiuday');
+        $dayid = $RequestObj->get_int('oldidayid');
 
-      $newunixday = $DB->date2unixday(
-         $RequestObj->get_year('year'),
-         $RequestObj->get_month('month'),
-         $RequestObj->get_day('day')
-      );
+        $newunixday = $DB->date2unixday(
+            $RequestObj->get_year('year'),
+            $RequestObj->get_month('month'),
+            $RequestObj->get_day('day')
+        );
 
-      // Always delete modified entry from DB
-      if ($dayid != - 1) {
-         $DB->exec_assert_change(
-            'DELETE FROM costs WHERE unixday = ? AND dayid = ?',
-            array($oldunixday, $dayid),
-            1
-         );
-      }
+        // Always delete modified entry from DB
+        if($dayid != - 1) {
+            $DB->exec_assert_change('DELETE FROM costs WHERE unixday = ? AND dayid = ?', array($oldunixday, $dayid), 1);
+        }
 
-      if ($dayid != - 1 && $newunixday != $oldunixday) {
-         // if edit, but date has been edited, we need a new dayid
-         $dayid = - 1;
-      }
-      
-      self::from_raw(
-         array(
-            'unixday' => $newunixday,
-            'dayid' => $dayid,
-            'name' => $RequestObj->get_string('name'),
-            'value' => $RequestObj->get_money('value'),
-            'timespan' => $RequestObj->get_int('fortime'),
-            'accounts' => $RequestObj->get_value('account'),
-            'checked' => $RequestObj->get_checkbox('checked') ? 2 : 0,
-            'optional' => $RequestObj->get_checkbox('optional'),
-            'ctype' => $RequestObj->get_value('type'),
-            'business' => $RequestObj->get_checkbox('business'),
-            'clong' => $RequestObj->get_value('long')
-         ),
-         $DB
-      )->store($DB);
-   }
+        if($dayid != - 1 && $newunixday != $oldunixday) {
+            // if edit, but date has been edited, we need a new dayid
+            $dayid = - 1;
+        }
 
-   /** Generate HTML form fields based on the item */
-   public function to_html_form($DB) {
+        self::from_raw(
+            array(
+                'unixday' => $newunixday,
+                'dayid' => $dayid,
+                'name' => $RequestObj->get_string('name'),
+                'value' => $RequestObj->get_money('value'),
+                'timespan' => $RequestObj->get_int('fortime'),
+                'accounts' => $RequestObj->get_value('account'),
+                'checked' => $RequestObj->get_checkbox('checked') ? 2 : 0,
+                'optional' => $RequestObj->get_checkbox('optional'),
+                'ctype' => $RequestObj->get_value('type'),
+                'business' => $RequestObj->get_checkbox('business'),
+                'clong' => $RequestObj->get_value('long')
+            ),
+            $DB
+        )->store($DB);
+    }
 
-      // TODO Move selector constructors to single class
-      return Application::get()->solder()->fuse(
-         'item_as_form',
-         array( //
-            'id' => $this->id,
-            'dayid' => $this->dayid,
-            'unixday' => $this->uday->ud(),
-            'year' => $this->uday->year(),
-            'month' => $this->uday->month(),
-            'day' => $this->uday->day(),
-            'name' => $this->name,
-            'value' => $this->value,
-            '$accountselector' => Html::accountselector($DB, $this->accountto . $this->accountfrom),
-            '$fortimeselector' => Texts::timespanselector($this->timespan),
-            '$typeselector' => Html::typeselector($DB, $this->ctype),
-            '$cchecked' => ($this->checked == 2 ? 'checked="checked"' : ''),
-            '$coptional' => ($this->optional == 1 ? 'checked="checked"' : ''),
-            '$cbusiness' => ($this->business == 1 ? 'checked="checked"' : ''),
-            'clong' => $this->clong
-         )
-      );
+    /** Generate HTML form fields based on the item */
+    public function to_html_form($DB) {
 
-   }
+        // TODO Move selector constructors to single class
+        return Application::get()->solder()->fuse(
+            'item_as_form',
+            array( //
+                'id' => $this->id,
+                'dayid' => $this->dayid,
+                'unixday' => $this->uday->ud(),
+                'year' => $this->uday->year(),
+                'month' => $this->uday->month(),
+                'day' => $this->uday->day(),
+                'name' => $this->name,
+                'value' => $this->value,
+                '$accountselector' => Html::accountselector($DB, $this->accountto . $this->accountfrom),
+                '$fortimeselector' => Texts::timespanselector($this->timespan),
+                '$typeselector' => Html::typeselector($DB, $this->ctype),
+                '$cchecked' => ($this->checked == 2 ? 'checked="checked"' : ''),
+                '$coptional' => ($this->optional == 1 ? 'checked="checked"' : ''),
+                '$cbusiness' => ($this->business == 1 ? 'checked="checked"' : ''),
+                'clong' => $this->clong
+            )
+        );
 
-   /** Returns a CSS class identifying the current item */
-   public function item_id_css() {
-      return self::static_item_id_css($this->id);
-   }
+    }
 
-   /** Returns a CSS class identifying the current item */
-   public static function static_item_id_css($id){
-      return 'bpid_' . $id;
-   }
+    /** Returns a CSS class identifying the current item */
+    public function item_id_css() {
+        return self::static_item_id_css($this->id);
+    }
 
-   /** Generate a HTML view of the item */
-   public function to_html(
-      $adddate = false /*< bool */
-   ) {
-      $style_row = $this->item_id_css();
+    /** Returns a CSS class identifying the current item */
+    public static function static_item_id_css($id) {
+        return 'bpid_' . $id;
+    }
 
-      if ($this->infuture) {
+    /** Generate a HTML view of the item */
+    public function to_html(
+        $adddate = false /*< bool */
+    ) {
+        $style_row = $this->item_id_css();
 
-         $style_row .= ' bpfuture';
+        if($this->infuture) {
 
-      } else {
+            $style_row .= ' bpfuture';
 
-         if ($this->business) {
-            $style_row .= ' bpbusiness';
-         }
+        } else {
 
-      }
+            if($this->business) {
+                $style_row .= ' bpbusiness';
+            }
 
-      $style_acc = 'bpchkd bpchkd_' . ($this->checked + 0); // checked
-      $style_acc .= ' bpacc_' . strtolower($this->accountto); // account identifier; see Html::css_accounts
+        }
 
-      return Application::get()->solder()->fuse(
-         'item',
-         array(
-            'id' => $this->id,
-            '$class_tr' => $style_row,
-            'date' => ($adddate ? date('D d M Y', $this->uday->ud() * 24 * 60 * 60) : ''),
-            'name' => $this->name,
-            'comment' => mb_substr($this->clong, 0, 16),
-            '$value' => printsum($this->value, false, false),
-            'timespan' => Texts::timespan($this->timespan . ''),
-            '$class_acc' => $style_acc,
-            'acc' => $this->accountto . $this->accountfrom,
-            '$ctype' => strtolower($this->ctype),
-            'type' => $this->ctype
-         )
-      );
-   }
+        $style_acc = 'bpchkd bpchkd_' . ($this->checked + 0); // checked
+        $style_acc .= ' bpacc_' . strtolower($this->accountto); // account identifier; see Html::css_accounts
+        return Application::get()->solder()->fuse(
+            'item',
+            array(
+                'id' => $this->id,
+                '$class_tr' => $style_row,
+                'date' => ($adddate ? date('D d M Y', $this->uday->ud() * 24 * 60 * 60) : ''),
+                'name' => $this->name,
+                'comment' => mb_substr($this->clong, 0, 16),
+                '$value' => printsum($this->value, false, false),
+                'timespan' => Texts::timespan($this->timespan . ''),
+                '$class_acc' => $style_acc,
+                'acc' => $this->accountto . $this->accountfrom,
+                '$ctype' => strtolower($this->ctype),
+                'type' => $this->ctype
+            )
+        );
+    }
 
-   public function to_html_line($ud_now) {
-      $perday = $this->value / $this->timespan;
-      return '<tr><td>' . implode(
-         '</td><td>',
-         array(
-            $this->uday->simple_string(),
-            $this->name,
-            printsum($this->value),
-            printsum($perday * 365 / 12) . '/m ',
-            printsum($perday) . '/d',
-            ($this->uday->ud() + $this->timespan - $ud_now->ud()) // Remaining days
-         )
-      ) . '</td></tr>';
-   }
+    public function to_html_line($ud_now) {
+        $perday = $this->value / $this->timespan;
+        return '<tr><td>' . implode(
+            '</td><td>',
+            array(
+                $this->uday->simple_string(),
+                $this->name,
+                printsum($this->value),
+                printsum($perday * 365 / 12) . '/m ',
+                printsum($perday) . '/d',
+                ($this->uday->ud() + $this->timespan - $ud_now->ud()) // Remaining days
+                
+            )
+        ) . '</td></tr>';
+    }
 
 }
