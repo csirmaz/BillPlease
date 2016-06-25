@@ -21,53 +21,50 @@
 /** This class calculates the first items that are unchecked or marked with green or blue */
 
 class FirstChecked {
-   public $html_unc = ''; // Needs to be public as $me below cannot access it otherwise (PHP 5.3)
-   public $js_unc;
+    public $html_unc = ''; // Needs to be public as $me below cannot access it otherwise (PHP 5.3)
+    public $js_unc;
 
-   public function init() {
-      $DB = Application::get()->db();
-      $Solder = Application::get()->solder();
+    public function init() {
+        $DB = Application::get()->db();
+        $Solder = Application::get()->solder();
 
-      $me = $this; // Needed by PHP 5.3
-      $DB->query_callback(
-         'select distinct accountto from costs',
-         false,
-         function ($racc) use ($DB, $Solder, $me) {
-            $DB->query_callback(
-               'select accountto,year,month,day,id from costs where accountto=? and checked=0 order by year,month,day,dayid limit 1',
-               array($racc['accountto']),
-               function ($r) use ($Solder, $me) {
-                  $me->html_unc .= $Solder->fuse(
-                     'firstchecked_item',
-                     array(
-                        'acc' => $r['accountto'],
-                        'y' => $r['year'],
-                        'm' => $r['month'],
-                        'd' => $r['day']
-                     )
-                  );
-                  $me->js_unc .= $Solder->fuse(
-                     'firstchecked_jsitem',
-                     array('$id' => Item::static_item_id_css($r['id']), '$class' => 'bpfirst_unc')
-                  );
-               }
-            );
-         }
-      );
-   }
+        $me = $this; // Needed by PHP 5.3
+        $DB->query_callback(
+            'select distinct accountto from costs',
+            false,
+            function ($racc) use ($DB, $Solder, $me) {
+                $DB->query_callback(
+                    'select accountto,year,month,day,id from costs where accountto=? and checked=0 order by year,month,day,dayid limit 1',
+                    array($racc['accountto']),
+                    function ($r) use ($Solder, $me) {
+                        $me->html_unc .= $Solder->fuse(
+                            'firstchecked_item',
+                            array(
+                                'acc' => $r['accountto'],
+                                'y' => $r['year'],
+                                'm' => $r['month'],
+                                'd' => $r['day']
+                            )
+                        );
+                        $me->js_unc .= $Solder->fuse(
+                            'firstchecked_jsitem',
+                            array('$id' => Item::static_item_id_css($r['id']), '$class' => 'bpfirst_unc')
+                        );
+                    }
+                );
+            }
+        );
+    }
 
-   /** Returns HTML to describe the first items */
-   public function gethtml() {
-      return Application::get()->solder()->fuse(
-         'firstchecked_note',
-         array('$unc' => $this->html_unc)
-      );
-   }
+    /** Returns HTML to describe the first items */
+    public function gethtml() {
+        return $this->html_unc;
+    }
 
-   /** Returns JS code to mark the first items */
-   public function getjs() {
-      return $this->js_unc;
-   }
+    /** Returns JS code to mark the first items */
+    public function getjs() {
+        return $this->js_unc;
+    }
 
 }
 
