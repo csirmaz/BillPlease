@@ -262,6 +262,7 @@ $(function(){
 
     // Shortcut keys
     $editmodal.on('keydown', function(e) {
+        e.stopPropagation(); // to avoid global shortcut keys getting triggered
         switch(e.which){
             case 13: // ENTER
                 if(e.ctrlKey){ BP.send_edit(); }
