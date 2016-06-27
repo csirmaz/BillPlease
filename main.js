@@ -82,12 +82,14 @@ BP = {
         BP.do_action($(o).serialize() + '&action=add');
     },
     
-    show_error: function() {
+    show_error: function(message) {
         BP.show_curtain();
         $('.modal').modal('hide'); // Hide all modals
         $('.bp-error-modal').modal();
+        $('.bp-error-modal .bp-error-details').text(message || 'unknown');
     },
     
+    // Send an AJAX request to complete an action
     do_action: function(request) {
         BP.show_curtain();
         $.ajax({
@@ -100,10 +102,10 @@ BP = {
                     document.location.reload();
                 }
                 else {
-                    BP.show_error();
+                    BP.show_error(response.message);
                 }
             },
-            error: BP.show_error
+            error: function(jqxhr, status, err){ BP.show_error(status); }
         });        
     },
     
