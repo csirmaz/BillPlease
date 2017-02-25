@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2016 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2016,2017 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ class View {
         }
     }
 
-    public static function page_list($PATH, $DB, $nowday, $list) {
+    public static function page_list($DB, $nowday, $list) {
         $APP = Application::get();
         $SLD = $APP->solder();
         $shortcuts = Html::shortcuts($DB);
@@ -38,7 +38,7 @@ class View {
         return $SLD->fuse(
             'page_list',
             array(
-                '$head_common' => self::head_common($PATH),
+                '$head_common' => self::head_common(),
                 '$head_list' => $SLD->fuse(
                     'head_list',
                     array(
@@ -55,7 +55,7 @@ class View {
         );
     }
 
-    public static function page_edit($PATH, $DB, $actionButtonLabel, $itemform) {
+    public static function page_edit($DB, $actionButtonLabel, $itemform) {
         $SLD = Application::get()->solder();
 
         return $SLD->fuse(
@@ -64,7 +64,8 @@ class View {
         );
     }
 
-    private static function head_common($PATH) {
+    private static function head_common() {
+        $PATH = Application::get()->path();
         return Application::get()->solder()->fuse(
             'head_common',
             array(

@@ -78,7 +78,6 @@ class Control {
     
         $APP = Application::get();
         $DB = $APP->db();
-        $PATH = $APP->path();
     
         switch($REQ->get_view()){
 
@@ -103,7 +102,6 @@ class Control {
                 switch ($REQ->get_string('mode')){
                 case 'new':
                     print View::page_edit(
-                        $PATH, 
                         $DB, 
                         'Create', 
                         Item::new_empty_on_uday($APP->nowday()->ud())->to_html_form($DB)
@@ -111,7 +109,6 @@ class Control {
                     exit(0);
                 case 'new-on':
                     print View::page_edit(
-                        $PATH, 
                         $DB, 
                         'Create', 
                         Item::new_empty_on_uday($REQ->get_int('ud'))->to_html_form($DB)
@@ -119,7 +116,6 @@ class Control {
                     exit(0);
                 case 'modify':
                     print View::page_edit(
-                        $PATH, 
                         $DB, 
                         'Modify', 
                         Item::from_db($DB->querysinglerow('select * from costs where id=?',array($REQ->get_int('id'))))->to_html_form($DB)

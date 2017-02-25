@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2017 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2014,2017 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -24,7 +24,8 @@ header("Cache-Control: no-cache, must-revalidate");
 
 // TODO Use OS-indep directory separator
 
-$LIBPATH = dirname(__FILE__) . '/lib';
+$PATH = dirname(__FILE__);
+$LIBPATH = $PATH . '/lib';
 
 require $LIBPATH . '/sqlbrite/sqlbrite.php';
 require $LIBPATH . '/solder/Solder.php';
@@ -45,5 +46,6 @@ require $LIBPATH . '/CType.php';
 require $LIBPATH . '/FirstChecked.php';
 require $LIBPATH . '/Summary.php';
 
+require $PATH . '/config.php';
 
 ?>
