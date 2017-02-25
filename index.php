@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2014 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2017 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -22,24 +22,28 @@ header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() - 60*60*24));
 header("Pragma: no-cache");
 header("Cache-Control: no-cache, must-revalidate");
 
-$PATH = dirname(__FILE__) . '/lib';
+// TODO Use OS-indep directory separator
 
-require $PATH . '/sqlbrite/sqlbrite.php';
-require $PATH . '/solder/Solder.php';
-require $PATH . '/CostsDB.php';
-require $PATH . '/CostLock.php';
-require $PATH . '/UnixDay.php';
-require $PATH . '/Application.php';
-require $PATH . '/Texts.php';
-require $PATH . '/Request.php';
-require $PATH . '/Control.php';
-require $PATH . '/View.php';
-require $PATH . '/ItemData.php';
-require $PATH . '/Item.php';
-require $PATH . '/Day.php';
-require $PATH . '/Html.php';
-require $PATH . '/CType.php';
-require $PATH . '/FirstChecked.php';
-require $PATH . '/Summary.php';
+$LIBPATH = dirname(__FILE__) . '/lib';
+
+require $LIBPATH . '/sqlbrite/sqlbrite.php';
+require $LIBPATH . '/solder/Solder.php';
+require $LIBPATH . '/CostsDB.php';
+require $LIBPATH . '/CostLock.php';
+require $LIBPATH . '/UnixDay.php';
+require $LIBPATH . '/Application.php';
+require $LIBPATH . '/Texts.php';
+require $LIBPATH . '/Request.php';
+require $LIBPATH . '/Control.php';
+require $LIBPATH . '/View.php';
+require $LIBPATH . '/ItemData.php';
+require $LIBPATH . '/Rates.php';
+require $LIBPATH . '/Item.php';
+require $LIBPATH . '/Day.php';
+require $LIBPATH . '/Html.php';
+require $LIBPATH . '/CType.php';
+require $LIBPATH . '/FirstChecked.php';
+require $LIBPATH . '/Summary.php';
+
 
 ?>
