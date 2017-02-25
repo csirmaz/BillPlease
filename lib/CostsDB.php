@@ -37,35 +37,6 @@ class CostsDB extends SQLBrite {
       return "strftime('%s'," . $this->c2date() . ")";
    }
 
-   /** Returns the sum of entries for a given account up to the given day */
-   public function accountsum($acc, $nowday) {
-      // DB index: costs_accto_ud_|_v
-      $to = $this->querysingle('select sum(value) from costs where accountto = ? and unixday <= ?', array($acc, $nowday));
-      // DB index: costs_accfr_ud_|_v
-      $from = $this->querysingle('select sum(value) from costs where accountfrom = ? and unixday <= ?', array($acc, $nowday));
-      return ($to - $from) / 100;
-   }
-
-   /** Returns the sum of checked entries for the given account */
-   public function accountsum_checked($acc) {
-      // Index: costs_accto_c
-      $to = $this->querysingle('select sum(value) from costs where accountto = ? and checked>0', array($acc));
-      // Index: costs_accfrom_c
-      $from = $this->querysingle('select sum(value) from costs where accountfrom = ? and checked>0', array($acc));
-      return ($to - $from) / 100;
-   }
-
-   /** Returns an ID that is still free on the given day */
-   public function get_free_dayid($unixday) {
-      $xno = $this->querysingle('select max(dayid) as mdayid from costs where unixday = ?', array($unixday));
-      if (is_null($xno)) {
-         $xno = 0;
-      } else {
-         $xno++;
-      }
-      return $xno;
-   }
-
    /** Performs consistency checks on the DB */
    public function internal_fsck() {
       if ($this->querysingle('select count(*) from costs where unixday != ' . $this->c2unixtime() . '/60/60/24') != 0) {

@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2014 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2016 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -25,14 +25,13 @@ class ItemData {
     protected $uday; /*< UnixDay object */
     protected $udayto; /*< UnixDay object; $uday+$timespan */
 
-    protected $dayid;
     protected $name;
     protected $value; /*< in the object, not an integer; in the DB, multiplied by 100 */
     protected $timespan;
     protected $accountto;
     protected $accountfrom;
     protected $checked;
-    protected $optional;
+    protected $istransfer;
     protected $ctype; /*< in the object, can be 'X'; in the DB, empty string is used */
     protected $business;
     protected $clong;
@@ -62,19 +61,18 @@ class ItemData {
 
     /** Alternative constructor */
     public static function new_empty_on($year, $month, $day) {
-        return self::from_raw(array('id' => - 1, 'dayid' => - 1, 'year' => $year, 'month' => $month, 'day' => $day));
+        return self::from_raw(array('id' => -1, 'year' => $year, 'month' => $month, 'day' => $day));
     }
 
     /** Alternative constructor */
     public static function new_empty_on_uday($uday) {
-        return self::from_raw(array('id' => - 1, 'dayid' => - 1, 'unixday' => $uday));
+        return self::from_raw(array('id' => -1, 'unixday' => $uday));
     }
 
     /** Constructs an object from raw, possibly incomplete data.
      *
      * Extra keys in $attrs: 'year', 'month', 'day', 'unixday', 'unixdayto'
      * Year, month, day and unixday are calculated from each other.
-     * A new dayid is requested if it is unset, false, or <0, *and* $DB is given.
      */
     public static function from_raw($attrs = array(), $DB = false) {
 
@@ -85,8 +83,8 @@ class ItemData {
         }
         // fix business -> 1/0
         $attrs['business'] = (isset($attrs['business']) && $attrs['business']) ? 1 : 0;
-        // fix optional -> 1/0
-        $attrs['optional'] = (isset($attrs['optional']) && $attrs['optional']) ? 1 : 0;
+        // fix istransfer -> 1/0
+        $attrs['istransfer'] = (isset($attrs['istransfer']) && $attrs['istransfer']) ? 1 : 0;
         // fix checked
         if((!isset($attrs['checked'])) || $attrs['checked'] == '') {
             $attrs['checked'] = 0;
@@ -133,10 +131,6 @@ class ItemData {
             }
         }
         return $this;
-    }
-
-    public function get_dayid() {
-        return $this->dayid;
     }
 
     public function get_name() {
@@ -193,6 +187,7 @@ class ItemData {
     }
 
     public function get_value() {
+        // TODO rate
         return $this->value;
     }
 
@@ -202,6 +197,7 @@ class ItemData {
     }
 
     public function realvalue() {
+        // TODO rate
         if($this->accountfrom) {
             return 0;
         }
@@ -215,14 +211,13 @@ class ItemData {
             'year',
             'month',
             'day',
-            'dayid',
             'name',
             'value',
             'timespan',
             'accountto',
             'accountfrom',
             'checked',
-            'optional',
+            'istransfer',
             'ctype',
             'business',
             'clong',
@@ -253,14 +248,6 @@ class ItemData {
                 break;
                 case 'unixdayto':
                     $v = $this->udayto->ud();
-                break;
-                case 'dayid':
-                    if(isset($this->dayid) && $this->dayid !== false && $this->dayid >= 0) {
-                        $v = $this->dayid;
-                    } else {
-                        $v = $DB->get_free_dayid($this->uday->ud());
-                        $this->dayid = $v;
-                    }
                 break;
                 default:
                     $v = $this->$n;

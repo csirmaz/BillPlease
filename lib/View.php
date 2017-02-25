@@ -74,12 +74,13 @@ class View {
         );
     }
 
-    public static function chart_timeline($APP, $nowday) {
+    public static function chart_timeline($APP) {
         $SLD = $APP->solder();
         $DB = $APP->db();
         $sum = 0;
         $timedsum = 0;
         $out = '';
+        $nowday = $APP->nowday()->ud();
 
         for($d = $DB->querysingle('select min(unixday) from costs') + 0;$d <= $nowday;$d++) {
             $Day = Day::from_unixday($DB, $d);
@@ -100,8 +101,9 @@ class View {
 
     }
 
-    public static function chart_bar($APP, $nowday) {
+    public static function chart_bar($APP) {
         $DB = $APP->db();
+        $nowday = $APP->nowday()->ud();
         $step = 30;
 
         $data = self::_barchart(
@@ -122,10 +124,27 @@ class View {
             )
         );
     }
+    
+    // CSV output from business entries
+    public static function chart_business_csv() {
+        $out = '';
+        $DB = Application::get()->db();
+        $TYP = new CType($DB);
+        $DB->query_callback(
+            'select * from costs where business=1 order by ctype,unixday,id',
+            false,
+            function($r)use($TYP, &$out){
+                $out .= Item::from_db($r)->to_csv_line($TYP);
+            }
+         );
+        print Application::get()->solder()->fuse('chart_csv_page', array('title' => 'Business entries', '$data' => $out));      
+    }
 
-    public static function chart_csv($APP, $nowday) {
+   // CSV output from monthly outgoings by type
+    public static function chart_csv($APP) {
         $DB = $APP->db();
-        $step = 30;
+        $nowday = $APP->nowday()->ud();
+        $step = 30;        
 
         $data = self::_barchart(
             $DB,

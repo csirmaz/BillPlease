@@ -54,17 +54,18 @@ class Day {
     }
 
     private function load_sums() {
+        // TODO Adjust with rates
         if(!isset($this->sum)) {
             // Index: costs_acfr_ud_v
-            $this->sum = $this->DB->querysingle( // TODO Sum set here and below
-                'select sum(value) from costs where unixday=? and accountfrom=\'\'',
+            $this->sum = $this->DB->querysingle(
+                'select sum(value) from costs where unixday=? and istransfer!=1 and accountfrom=\'\'',
                 array($this->uday->ud())
             ) / 100;
         }
         if(!isset($this->timedsum)) {
             // Index: costs_acfr_ud_udt_v_s
             $this->timedsum = $this->DB->querysingle(
-                'select sum((value*1.0)/timespan) from costs where unixday<=? and unixdayto>? and accountfrom=\'\'',
+                'select sum((value*1.0)/timespan) from costs where unixday<=? and unixdayto>? and istransfer!=1 and accountfrom=\'\'',
                 array($this->uday->ud(), $this->uday->ud())
             ) / 100;
         }
@@ -74,20 +75,15 @@ class Day {
         if(count($this->items) > 0) {
             return;
         }
-        $sum = 0;
         $this->DB->query_callback(
-            'select * from costs where unixday=? order by dayid',
+            'select * from costs where unixday=? order by id',
             array($this->uday->ud()),
             function ($r) use ($nowday, &$sum) {
                 $item = Item::from_db($r);
                 $item->set_nowday($nowday);
-                $this->items[] = $item;
-                $sum += $item->realvalue(); // TODO Sum loaded here and above
-                
+                $this->items[] = $item;                
             }
         );
-
-        $this->sum = $sum;
     }
 
     public function load_long_items($nowday) {
@@ -95,7 +91,7 @@ class Day {
             return;
         }
         $this->DB->query_callback(
-            'select * from costs where unixday<? and unixdayto>? order by unixday, dayid', // excluding today
+            'select * from costs where unixday<? and unixdayto>? order by unixday, id', // excluding today
             array($this->uday->ud(), $this->uday->ud()),
             function ($r) use ($nowday) {
                 $item = Item::from_db($r);
@@ -137,9 +133,9 @@ class Day {
     }
 
     // Get HTML describing all elements affecting the current day
-    public function get_long_info($nowday) {
-        $this->load_items($nowday);
-        $this->load_long_items($nowday);
+    public function get_long_info($UnixDayObj) {
+        $this->load_items($UnixDayObj->ud());
+        $this->load_long_items($UnixDayObj->ud());
         $out = '';
         /*
         foreach ($this->items as $item){

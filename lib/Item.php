@@ -30,7 +30,6 @@ class Item extends ItemData {
     public static function parse_html_form($RequestObj, $DB) {
 
         $oldunixday = $RequestObj->get_int('oldiuday');
-        $dayid = $RequestObj->get_int('oldidayid');
 
         $newunixday = $DB->date2unixday(
             $RequestObj->get_year('year'),
@@ -39,25 +38,20 @@ class Item extends ItemData {
         );
 
         // Always delete modified entry from DB
-        if($dayid != - 1) {
-            $DB->exec_assert_change('DELETE FROM costs WHERE unixday = ? AND dayid = ?', array($oldunixday, $dayid), 1);
-        }
-
-        if($dayid != - 1 && $newunixday != $oldunixday) {
-            // if edit, but date has been edited, we need a new dayid
-            $dayid = - 1;
+        $oldid = $RequestObj->get_int('oldid');
+        if($oldid != - 1) {
+            $DB->exec_assert_change('DELETE FROM costs WHERE id = ?', array($oldid), 1);
         }
 
         self::from_raw(
             array(
                 'unixday' => $newunixday,
-                'dayid' => $dayid,
                 'name' => $RequestObj->get_string('name'),
                 'value' => $RequestObj->get_money('value'),
                 'timespan' => $RequestObj->get_int('fortime'),
                 'accounts' => $RequestObj->get_value('account'),
                 'checked' => $RequestObj->get_checkbox('checked') ? 2 : 0,
-                'optional' => $RequestObj->get_checkbox('optional'),
+                'istransfer' => $RequestObj->get_checkbox('istransfer'),
                 'ctype' => $RequestObj->get_value('type'),
                 'business' => $RequestObj->get_checkbox('business'),
                 'clong' => $RequestObj->get_value('long')
@@ -74,7 +68,6 @@ class Item extends ItemData {
             'item_as_form',
             array( //
                 'id' => $this->id,
-                'dayid' => $this->dayid,
                 'unixday' => $this->uday->ud(),
                 'year' => $this->uday->year(),
                 'month' => $this->uday->month(),
@@ -85,7 +78,7 @@ class Item extends ItemData {
                 '$fortimeselector' => Texts::timespanselector($this->timespan),
                 '$typeselector' => Html::typeselector($DB, $this->ctype),
                 '$cchecked' => ($this->checked == 2 ? 'checked="checked"' : ''),
-                '$coptional' => ($this->optional == 1 ? 'checked="checked"' : ''),
+                '$cistransfer' => ($this->istransfer == 1 ? 'checked="checked"' : ''),
                 '$cbusiness' => ($this->business == 1 ? 'checked="checked"' : ''),
                 'clong' => $this->clong
             )
@@ -118,6 +111,10 @@ class Item extends ItemData {
             if($this->business) {
                 $style_row .= ' bpbusiness';
             }
+            
+            if($this->istransfer) {
+                $style_row .= ' bptransfer';
+            }
 
         }
 
@@ -139,6 +136,19 @@ class Item extends ItemData {
                 'type' => $this->ctype
             )
         );
+    }
+    
+    public function to_csv_line($CTypeObj) {
+      return Application::get()->solder()->fuse(
+         'item_csv_line',
+         array(
+            'ctypename' => $CTypeObj->get_name_from_label($this->ctype),
+            'date' => date('Y-M-d', $this->uday->ud() * 24 * 60 * 60),
+            'name' => $this->name,
+            'value' => $this->value,
+            'account' => $this->accountto . $this->accountfrom
+         )
+      ) . "\n";
     }
 
     public function to_html_line($ud_now) {

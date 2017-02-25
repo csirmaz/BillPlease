@@ -34,7 +34,7 @@ class FirstChecked {
             false,
             function ($racc) use ($DB, $Solder, $me) {
                 $DB->query_callback(
-                    'select accountto,year,month,day,id from costs where accountto=? and checked=0 order by year,month,day,dayid limit 1',
+                    'select accountto,year,month,day,id from costs where accountto=? and checked=0 order by year,month,day,id limit 1',
                     array($racc['accountto']),
                     function ($r) use ($Solder, $me) {
                         $me->html_unc .= $Solder->fuse(

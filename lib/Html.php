@@ -129,6 +129,16 @@ class Html {
                     }
                 }
 
+                foreach(array(
+                    'istransfer' => 'istransfer'
+                ) as $d => $h) {
+                    if(!is_null($r[$d])) {
+                        $javascript .= $SLD->fuse('shortcut_checkbox_assign', 
+                            array('$form' => $form, 'name' => $h, '$tf' => ($r[$d] ? 'true' : 'false'))
+                        );
+                    }
+                }
+
                 if(!is_null($r['value'])) {
                     $javascript .= $SLD->fuse(
                         'shortcut_assign',
