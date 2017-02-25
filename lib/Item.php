@@ -40,7 +40,7 @@ class Item extends ItemData {
         // Always delete modified entry from DB
         $oldid = $RequestObj->get_int('oldid');
         if($oldid != - 1) {
-            $DB->exec_assert_change('DELETE FROM costs WHERE id = ?', array($oldid), 1);
+	    ItemData::delete_item($DB, $oldid);
         }
 
         self::from_raw(
@@ -55,8 +55,7 @@ class Item extends ItemData {
                 'ctype' => $RequestObj->get_value('type'),
                 'business' => $RequestObj->get_checkbox('business'),
                 'clong' => $RequestObj->get_value('long')
-            ),
-            $DB
+            )
         )->store($DB);
     }
 

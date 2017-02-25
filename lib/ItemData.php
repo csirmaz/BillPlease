@@ -74,7 +74,7 @@ class ItemData {
      * Extra keys in $attrs: 'year', 'month', 'day', 'unixday', 'unixdayto'
      * Year, month, day and unixday are calculated from each other.
      */
-    public static function from_raw($attrs = array(), $DB = false) {
+    public static function from_raw($attrs = array()) {
 
         // accounts (two characters) -> accountto, accountfrom (one character each)
         if(isset($attrs['accounts'])) {
@@ -89,6 +89,7 @@ class ItemData {
         if((!isset($attrs['checked'])) || $attrs['checked'] == '') {
             $attrs['checked'] = 0;
         }
+        $attrs['checked'] = ($attrs['checked'] ? 2 : 0); // {CHECKEDVALUE}
         // fix ctype
         if((!isset($attrs['ctype'])) || (!$attrs['ctype'])) {
             $attrs['ctype'] = 'X';
@@ -132,7 +133,7 @@ class ItemData {
         }
         return $this;
     }
-
+    
     public function get_name() {
         return $this->name;
     }
@@ -183,7 +184,7 @@ class ItemData {
     }
 
     public function get_info() {
-        return $this->uday->simple_string() . ' ' . $this->name . ' ' . $this->value . '/' . $this->timespan;
+        return $this->uday->simple_string() . ' "' . $this->name . '" ' . $this->value . ' <' . $this->ctype . '>';
     }
 
     public function get_value() {
@@ -203,7 +204,16 @@ class ItemData {
         }
         return $this->value;
     }
+    
+    public static function delete_item($DB, $id) {
+        $DB->exec_assert_change('DELETE FROM costs WHERE id = ?', array($id), 1);
+    }
 
+    public function delete($DB) {
+        self::delete_item($DB, $this->id);
+    }
+
+    /** Stores a NEW record in the database */
     public function store($DB) {
         $placeholders = array();
         $values = array();
@@ -264,12 +274,20 @@ class ItemData {
             1
         );
     }
-
+    
     /** Toggle the checked status of the item */
+    public function toggle_item_checked() {
+        $this->checked = ($this->checked ? 0 : 2); // {CHECKEDVALUE}
+        return $this;
+    }
+
+
+    /** Toggle the checked status of any item */
+    // TODO Rewrite into object method to call before store()
     public static function toggle_checked($DB, $id) {
-        $cur = $DB->querysinglerow('select checked,accountto from costs where id = ?', array($id));
+        $cur = $DB->querysinglerow('select checked from costs where id = ?', array($id));
         $cur = $cur['checked'];
-        $DB->exec_assert_change('update costs set checked = ? where id = ?', array(($cur > 0 ? 0 : 2), $id), 1);
+        $DB->exec_assert_change('update costs set checked = ? where id = ?', array(($cur > 0 ? 0 : 2), $id), 1); // {CHECKEDVALUE}
     }
 
 }
