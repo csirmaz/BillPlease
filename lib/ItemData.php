@@ -107,7 +107,7 @@ class ItemData {
         if((!isset($attrs['timespan'])) || $attrs['timespan'] < 1) {
             $attrs['timespan'] = 1;
         } elseif ($attrs['timespan'] == 30) {
-            $attrs['timespan'] = thirtyone($attrs['uday']->month()); // TODO global function
+            $attrs['timespan'] = UnixDay::month_length($attrs['uday']->month());
             
         }
 
@@ -184,7 +184,8 @@ class ItemData {
     }
 
     public function get_info() {
-        return $this->uday->simple_string() . ' "' . $this->name . '" ' . $this->value . ' <' . $this->ctype . '>';
+        return $this->uday->simple_string() . ' "' . $this->name . '" ' . $this->value 
+	 . ' <' . $this->ctype . '> ' . $this->accountto . $this->accountfrom;
     }
 
     public function get_value() {

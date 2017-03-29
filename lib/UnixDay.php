@@ -123,6 +123,11 @@ class UnixDay {
       $this->mymonth = date('n', $ut);
       $this->myday = date('j', $ut);
    }
+   
+   // Decide length of month between 30 or 31 days
+   public static function month_length($month){
+      return ($month==1 || $month==3 || $month==5 || $month==7 || $month==8 || $month==10 || $month==12) ? 31 : 30;
+   }
 
 }
 
