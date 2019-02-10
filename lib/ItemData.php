@@ -167,6 +167,10 @@ class ItemData {
         return $this;
     }
 
+    public function get_business() {
+        return $this->business;
+    }
+
     public function get_clong() {
         return $this->clong;
     }
@@ -186,6 +190,10 @@ class ItemData {
     public function get_info() {
         return $this->uday->simple_string() . ' "' . $this->name . '" ' . $this->value 
 	 . ' <' . $this->ctype . '> ' . $this->accountto . $this->accountfrom;
+    }
+
+    public function get_checked() {
+        return $this->checked;
     }
 
     public function get_value() {
@@ -283,12 +291,27 @@ class ItemData {
     }
 
 
+    /** Toggle the checked status of the item */
+    public function toggle_item_business() {
+        $this->business = ($this->business ? 0 : 1);
+        return $this;
+    }
+
+
     /** Toggle the checked status of any item */
     // TODO Rewrite into object method to call before store()
     public static function toggle_checked($DB, $id) {
         $cur = $DB->querysinglerow('select checked from costs where id = ?', array($id));
         $cur = $cur['checked'];
         $DB->exec_assert_change('update costs set checked = ? where id = ?', array(($cur > 0 ? 0 : 2), $id), 1); // {CHECKEDVALUE}
+    }
+
+    /** Toggle the business status of any item */
+    // TODO Rewrite into object method to call before store()
+    public static function toggle_business($DB, $id) {
+        $cur = $DB->querysinglerow('select business from costs where id = ?', array($id));
+        $cur = $cur['business'];
+        $DB->exec_assert_change('update costs set business = ? where id = ?', array(($cur > 0 ? 0 : 1), $id), 1);
     }
 
 }
