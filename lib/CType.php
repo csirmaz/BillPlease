@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2013 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2019 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 class CType {
 
    private $DB = array();
-   private $types = array(); /*< label => array(name=>, chartcolor=>, addto=>, exceptlongto=>, chartorder=>) */
+   private $types = array(); /*< label => array(name=>, chartcolor=>, chartorder=>) */
    private $sums = array(); /*< label => sum */
    private $gensums = array(); /*< '+'/'-' => sum */
 
@@ -38,8 +38,6 @@ class CType {
             $this->types[$r['sign']] = array(
                'name' => $r['name'],
                'chartcolor' => $r['chartcolor'],
-               'addto' => $r['addto'],
-               'exceptlongto' => $r['exceptlongto'],
                'chartorder' => $r['chartorder']
             );
          }
@@ -58,10 +56,11 @@ class CType {
       $this->gensums = array('+' => 0, '-' => 0);
 
       if ($timed) {
-         $query = 'select * from costs where accountfrom=\'\' and unixdayto > ? and unixday <= ?';
+         $query = 'select * from costs where istransfer=0 and unixdayto > ? and unixday <= ?';
       } else {
-         $query = 'select * from costs where accountfrom=\'\' and unixday >= ? and unixday <= ?';
+         $query = 'select * from costs where istransfer=0 and unixday >= ? and unixday <= ?';
       }
+
       $this->DB->query_callback(
          $query,
          array($dayfrom, $dayto),
@@ -75,19 +74,14 @@ class CType {
                $v = $v * $visiblespan / $item->get_timespan();
             }
 
-            if($maxvalue !== false && $v > $maxvalue){ $v = $maxvalue; }
+            if($maxvalue !== false && abs($v) > $maxvalue){ $v = ($v / abs($v)) * $maxvalue; }
 
             if ($v < 0) { // income
                $this->gensums['+'] -= $v;
             } else {
                $this->gensums['-'] += $v;
-               if ($t['exceptlongto']) {
-                  $long = $item->get_clong_as_num();
-                  $v -= $long;
-                  $this->sums[$t['exceptlongto']] += $long;
-               }
                $c = $r['ctype'];
-               $this->sums[$t['addto'] ? $t['addto'] : $item->get_ctype() ] += $v;
+               $this->sums[ $item->get_ctype() ] += $v;
             }
          }
       );
@@ -95,6 +89,11 @@ class CType {
 
    public function get_sum($label) {
       return $this->sums[$label];
+   }
+   
+   /** Return the name related to a label */
+   public function get_name_from_label($label) {
+      return $this->types[$label]['name'];
    }
 
    /** Call callback($label, $typedata, $sum) for each type (run sum() before calling this). */
