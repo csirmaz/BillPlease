@@ -176,6 +176,12 @@ $(function(){
         e.preventDefault();
     });
         
+    // Toggle the business status of an item
+    $('.bpitem .bpbusinessi').on('click', function(e){
+        BP.do_action({action:'business', id:$(this).closest('.bpitem').data('id')});
+        e.preventDefault();
+    });
+        
     // Get long items
     $('.bp-getlongitems-action').on('click', function(e){
         var $body = $('.bp-long-items-modal .modal-body');

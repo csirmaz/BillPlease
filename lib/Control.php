@@ -70,6 +70,22 @@ class Control {
                 }
                 View::json_resp(true);
                 exit(0);
+                
+            /*
+            Toggle business status of item
+            action = business
+            id = <item id>
+            */
+            case 'business':
+                try{
+                    Item::toggle_business($DB, $REQ->get_int('id'));
+                } catch(Exception $e){
+                    View::json_resp(false, $e);
+                    exit(0); 
+                }
+                View::json_resp(true);
+                exit(0);
+                
         }
     }
 

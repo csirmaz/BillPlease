@@ -54,18 +54,17 @@ class Day {
     }
 
     private function load_sums() {
-        // TODO Adjust with rates
         if(!isset($this->sum)) {
             // Index: costs_acfr_ud_v
             $this->sum = $this->DB->querysingle(
-                'select sum(value) from costs where unixday=? and istransfer!=1 and accountfrom=\'\'',
+                'select sum(costs.value * accountnames.rate) from costs, accountnames where costs.unixday = ? and costs.accountfrom = \'\' and accountnames.accounttofrom = costs.accountto',
                 array($this->uday->ud())
             ) / 100;
         }
         if(!isset($this->timedsum)) {
             // Index: costs_acfr_ud_udt_v_s
             $this->timedsum = $this->DB->querysingle(
-                'select sum((value*1.0)/timespan) from costs where unixday<=? and unixdayto>? and istransfer!=1 and accountfrom=\'\'',
+                'select sum((costs.value*1.0)*accountnames.rate/costs.timespan) from costs, accountnames where costs.unixday <= ? and costs.unixdayto > ? and costs.accountfrom = \'\' and accountnames.accounttofrom = costs.accountto',
                 array($this->uday->ud(), $this->uday->ud())
             ) / 100;
         }
@@ -91,7 +90,7 @@ class Day {
             return;
         }
         $this->DB->query_callback(
-            'select * from costs where unixday<? and unixdayto>? order by unixday, id', // excluding today
+            'select * from costs where unixday<=? and unixdayto>? order by unixday, id', // excluding today
             array($this->uday->ud(), $this->uday->ud()),
             function ($r) use ($nowday) {
                 $item = Item::from_db($r);
@@ -134,7 +133,6 @@ class Day {
 
     // Get HTML describing all elements affecting the current day
     public function get_long_info($UnixDayObj) {
-        $this->load_items($UnixDayObj->ud());
         $this->load_long_items($UnixDayObj->ud());
         $out = '';
         /*
