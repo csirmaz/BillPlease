@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2014 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2014, 2019 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,11 +18,17 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/** This class calculates the first items that are unchecked or marked with green or blue */
-
+/** This class calculates the first items that are unchecked */
 class FirstChecked {
-    public $html_unc = ''; // Needs to be public as $me below cannot access it otherwise (PHP 5.3)
+
+    // Unchecked info in HTML
+    // Needs to be public as $me below cannot access it otherwise (PHP 5.3)
+    public $html_unc = ''; 
+    
+    // Unchecked info in JS
     public $js_unc = '';
+    
+    // From a unixday to an array of accounts
     public $data = array();
 
     public function init() {
@@ -34,28 +40,40 @@ class FirstChecked {
             'select distinct accountto from costs',
             false,
             function ($racc) use ($DB, $Solder, $me) {
-                $DB->query_callback(
+
+                // First unchecked entry
+                $r = $DB->querysinglerow(
                     'select accountto,year,month,day,id,unixday from costs where accountto=? and checked=0 order by year,month,day,id limit 1',
-                    array($racc['accountto']),
-                    function ($r) use ($Solder, $me) {
-                        $me->html_unc .= $Solder->fuse(
-                            'firstchecked_item',
-                            array(
-                                'acc' => $r['accountto'],
-                                'y' => $r['year'],
-                                'm' => $r['month'],
-                                'd' => $r['day']
-                            )
-                        );
-                        $me->js_unc .= $Solder->fuse(
-                            'firstchecked_jsitem',
-                            array('$id' => Item::static_item_id_css($r['id']), '$class' => 'bpfirst_unc')
-                        );
- 
-                        if(!isset($me->data[$r['unixday']])) { $me->data[$r['unixday']] = ''; }
-                        $me->data[$r['unixday']] .= $r['accountto'];
-                    }
+                    array($racc['accountto'])
                 );
+ 
+                $me->html_unc .= $Solder->fuse(
+                    'firstchecked_item',
+                    array(
+                        'acc' => $r['accountto'],
+                        'y' => $r['year'],
+                        'm' => $r['month'],
+                        'd' => $r['day']
+                    )
+                );
+                
+                $me->js_unc .= $Solder->fuse(
+                    'firstchecked_jsitem',
+                    array('$id' => Item::static_item_id_css($r['id']), '$class' => 'bpfirst_unc')
+                );
+ 
+                if(!isset($me->data[$r['unixday']])) { $me->data[$r['unixday']] = []; }
+                $me->data[$r['unixday']][] = $r['accountto'] . ' (unchecked)';
+                        
+                // Now find the latest checked item before the first unchecked one
+                $r2 = $DB->querysinglerow(
+                    'select accountto,year,month,day,id,unixday from costs where accountto=? and checked!=0 and unixday<=? order by year desc,month desc, day desc, id desc limit 1',
+                    array($racc['accountto'], $r['unixday'])
+                );
+                if(isset($r2['unixday'])) {
+                    if(!isset($me->data[$r2['unixday']])) { $me->data[$r2['unixday']] = []; }
+                    $me->data[$r2['unixday']][] = $r2['accountto'] . ' (checked)';
+                }
             }
         );
     }
@@ -72,9 +90,9 @@ class FirstChecked {
     
     public function forday($ud) {
         if(isset($this->data[$ud])) {
-            return $this->data[$ud];
+            return implode(', ', $this->data[$ud]);
         }
-        return False;
+        return '';
     }
 
 }

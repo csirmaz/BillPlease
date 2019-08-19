@@ -105,13 +105,16 @@ class View {
 
             # annotation
             $antext = $APP->first_checked()->forday($d);
-            if($antext === False) {
+            if($useadjust && $d == $nowday) {
+                $antext .= ' Adjustment: ' . sprintf('%.2f', $adjustment);
+            }
+            if($antext === '') {
                 $antext = 'undefined';
                 $antitle = 'undefined';
             }
             else {
-                $antitle = '"Unchecked"';
-                $antext = '"' . $antext . '"';
+                $antitle = '"' . $antext . '"';
+                $antext = '""';
             }
             
             //[new Date(2008, 1 ,1), 30000, undefined, undefined, 40645, undefined, undefined],
