@@ -48,4 +48,6 @@ require $LIBPATH . '/Summary.php';
 
 require $PATH . '/config.php';
 
+require $PATH . '/../External.php';
+
 ?>

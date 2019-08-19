@@ -22,10 +22,13 @@
 class Application {
 
    private static $me;
-   private $db;
+   private $path;
+   private $db; /*< database object */
    private $solder;
+   private $rates;
    private $lock;
    private $first_checked;
+   private $nowday;
 
    /** Returns the singleton Application object */
    public static function get() {
@@ -45,14 +48,24 @@ class Application {
    }
 
    private function __construct($config) {
+      $this->path = $config['path'];
+   
       $this->db = new CostsDB(new SQLite3($config['database_file']));
       $this->db->exec('PRAGMA case_sensitive_like=OFF');
 
       $this->solder = new Solder($config['template_file'], $config['language']);
+      
+      $this->rates = new Rates($this->db);
 
       $this->lock = new CostLock($config['lock_file']);
 
       $this->first_checked = new FirstChecked($this->db, $this->solder);
+      
+      $this->nowday = UnixDay::from_ut(time());
+   }
+   
+   public function path() {
+      return $this->path;
    }
 
    public function db() {
@@ -69,6 +82,10 @@ class Application {
 
    public function first_checked() {
       return $this->first_checked;
+   }
+   
+   public function nowday() {
+      return $this->nowday;
    }
 
 }

@@ -51,7 +51,8 @@ class FirstChecked {
                             'firstchecked_jsitem',
                             array('$id' => Item::static_item_id_css($r['id']), '$class' => 'bpfirst_unc')
                         );
-                        
+ 
+                        if(!isset($me->data[$r['unixday']])) { $me->data[$r['unixday']] = ''; }
                         $me->data[$r['unixday']] .= $r['accountto'];
                     }
                 );

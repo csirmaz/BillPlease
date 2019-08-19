@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2016,2017 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2016,2017,2019 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -75,26 +75,57 @@ class View {
         );
     }
 
-    public static function chart_timeline($APP) {
+    /* $fromday==0 for full chart. Otherwise it is the offset */
+    public static function chart_timeline($APP, $fromday, $useadjust) {
         $SLD = $APP->solder();
         $DB = $APP->db();
         $sum = 0;
         $timedsum = 0;
         $out = '';
         $nowday = $APP->nowday()->ud();
+        
+        if($fromday == 0) {
+            $fromday = $DB->querysingle('select min(unixday) from costs') + 0;
+        }
+        else {
+            $fromday = $nowday - $fromday;
+            $sum = Summary::get_all_sum($DB, $fromday-1);
+            $timedsum = $sum - Summary::get_tail_sum($DB, $fromday-1);
+        }
 
-        for($d = $DB->querysingle('select min(unixday) from costs') + 0;$d <= $nowday;$d++) {
+        for($d = $fromday; $d <= $nowday; $d++) {
             $Day = Day::from_unixday($DB, $d);
             $sum += $Day->get_sum();
             $timedsum += $Day->get_timedsum();
+            
+            $adjustment = 0;
+            if($useadjust && function_exists('\\BillPleaseExternal\\day_sum_adjust')) {
+                $adjustment = \BillPleaseExternal\day_sum_adjust($Day);
+            }
 
+            # annotation
+            $antext = $APP->first_checked()->forday($d);
+            if($antext === False) {
+                $antext = 'undefined';
+                $antitle = 'undefined';
+            }
+            else {
+                $antitle = '"Unchecked"';
+                $antext = '"' . $antext . '"';
+            }
+            
             //[new Date(2008, 1 ,1), 30000, undefined, undefined, 40645, undefined, undefined],
             if($out) {
                 $out .= ",\n";
             }
             $out .= $SLD->fuse(
-                'chart_timeline_day',
-                array('$date' => $Day->get_js_date(), '$timedsum' => - $timedsum, '$sum' => - $sum)
+                'chart_timeline_day', array(
+                    '$date' => $Day->get_js_date(), 
+                    '$timedsum' => - ($timedsum + $adjustment),
+                    '$sum' => - ($sum + $adjustment),
+                    '$antitle' => $antitle,
+                    '$antext' => $antext
+                )
             );
         }
 
@@ -128,20 +159,16 @@ class View {
     
     // CSV output from business entries
     public static function chart_business_csv() {
-        $out = '';
-        $DB = Application::get()->db();
-        $TYP = new CType($DB);
-        $DB->query_callback(
-            'select * from costs where business=1 order by ctype,unixday,id',
-            false,
-            function($r)use($TYP, &$out){
-                $out .= Item::from_db($r)->to_csv_line($TYP);
-            }
-         );
-        print Application::get()->solder()->fuse('chart_csv_page', array('title' => 'Business entries', '$data' => $out));      
+        $out = \BillPleaseExternal\chart_business_csv();
+         
+        header("Content-type: text/csv");
+        header("Content-Disposition: attachment; filename=business.csv");
+        header("Pragma: no-cache");
+        header("Expires: 0");
+        print $out;
     }
 
-   // CSV output from monthly outgoings by type
+    // CSV output from monthly outgoings by type
     public static function chart_csv($APP) {
         $DB = $APP->db();
         $nowday = $APP->nowday()->ud();
@@ -154,7 +181,13 @@ class View {
             $nowday,
             'csv'
         );
-        print $APP->solder()->fuse('chart_csv_page', array('title' => Texts::systitle(), '$data' => $data[0]));
+
+        header("Content-type: text/csv");
+        header("Content-Disposition: attachment; filename=month-by-type.csv");
+        header("Pragma: no-cache");
+        header("Expires: 0");
+        print $data[0];
+        # print $APP->solder()->fuse('chart_csv_page', array('title' => Texts::systitle(), '$data' => $data[0]));
     }
 
     private static function _barchart(
@@ -162,9 +195,7 @@ class View {
         $dayfrom, // not object
         $step,
         $dayto,
-        $format
-        // "graph" or "csv"
-        
+        $format // "graph" or "csv"
     ) {
 
         $TYP = new CType($DB);
@@ -213,8 +244,7 @@ class View {
                 $udfrom,
                 $udto,
                 true,
-                5000
-                /* TODO MAX VALUE */
+                5000 /* TODO MAX VALUE */
             );
             if($format == 'graph') {
                 $databyie .= ',' . implode(',', $TYP->get_gensums_corrected()) . ']';

@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2014,2017 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2014,2017,2019 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -47,6 +47,10 @@ class Day {
     public function get_timedsum() {
         $this->load_sums();
         return $this->timedsum;
+    }
+    
+    public function get_uday() {
+        return $this->uday;
     }
 
     public function get_js_date() {
@@ -122,8 +126,7 @@ class Day {
                 array(
                     '$timedsum' => printsum($this->get_timedsum()),
                     '$sum' => printsum($this->get_sum()),
-                    'ud' => $this->uday->ud(),
-                    '$smileyclass' => ($this->get_timedsum() <= 0 ? 'smile' : 'frown')
+                    'ud' => $this->uday->ud()
                 )
             )
         );
@@ -143,6 +146,12 @@ class Day {
         foreach($this->longitems as $item) {
             $out .= $item->to_html_line($this->uday);
         }
+        
+        if(function_exists('\\BillPleaseExternal\\day_sum_adjust')) {
+            $adjustment = \BillPleaseExternal\day_sum_adjust($this);
+            $out .= '<tr><td></td><td>ADJUSTMENT TODAY</td><td>'.printsum($adjustment).'</td></tr>';    
+        }
+        
         return Application::get()->solder()->fuse(
             'longitems_modal_body',
             array('title' => $this->uday->simple_string(), '$rows' => $out)
