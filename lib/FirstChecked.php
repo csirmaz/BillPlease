@@ -46,31 +46,42 @@ class FirstChecked {
                     'select accountto,year,month,day,id,unixday from costs where accountto=? and checked=0 order by year,month,day,id limit 1',
                     array($racc['accountto'])
                 );
- 
-                $me->html_unc .= $Solder->fuse(
-                    'firstchecked_item',
-                    array(
-                        'acc' => $r['accountto'],
-                        'y' => $r['year'],
-                        'm' => $r['month'],
-                        'd' => $r['day']
-                    )
-                );
                 
-                $me->js_unc .= $Solder->fuse(
-                    'firstchecked_jsitem',
-                    array('$id' => Item::static_item_id_css($r['id']), '$class' => 'bpfirst_unc')
-                );
+                if(!empty($r)) {
  
-                if(!isset($me->data[$r['unixday']])) { $me->data[$r['unixday']] = []; }
-                $me->data[$r['unixday']][] = $r['accountto'] . ' (unchecked)';
+                    $me->html_unc .= $Solder->fuse(
+                        'firstchecked_item',
+                        array(
+                            'acc' => $r['accountto'],
+                            'y' => $r['year'],
+                            'm' => $r['month'],
+                            'd' => $r['day']
+                        )
+                    );
+                    
+                    $me->js_unc .= $Solder->fuse(
+                        'firstchecked_jsitem',
+                        array('$id' => Item::static_item_id_css($r['id']), '$class' => 'bpfirst_unc')
+                    );
+    
+                    if(!isset($me->data[$r['unixday']])) { $me->data[$r['unixday']] = []; }
+                    $me->data[$r['unixday']][] = $r['accountto'] . ' (unchecked)';
+                    
+                    // Now find the latest checked item before the first unchecked one
+                    $r2 = $DB->querysinglerow(
+                        'select accountto,year,month,day,id,unixday from costs where accountto=? and checked!=0 and unixday<=? order by year desc,month desc, day desc, id desc limit 1',
+                        array($racc['accountto'], $r['unixday'])
+                    );
+                }
+                else {
+                    // Now find the latest checked item
+                    $r2 = $DB->querysinglerow(
+                        'select accountto,year,month,day,id,unixday from costs where accountto=? and checked!=0 order by year desc,month desc, day desc, id desc limit 1',
+                        array($racc['accountto'])
+                    );
+                }
                         
-                // Now find the latest checked item before the first unchecked one
-                $r2 = $DB->querysinglerow(
-                    'select accountto,year,month,day,id,unixday from costs where accountto=? and checked!=0 and unixday<=? order by year desc,month desc, day desc, id desc limit 1',
-                    array($racc['accountto'], $r['unixday'])
-                );
-                if(isset($r2['unixday'])) {
+                if(!empty($r2)) {
                     if(!isset($me->data[$r2['unixday']])) { $me->data[$r2['unixday']] = []; }
                     $me->data[$r2['unixday']][] = $r2['accountto'] . ' (checked)';
                 }

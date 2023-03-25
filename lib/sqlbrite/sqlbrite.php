@@ -119,7 +119,7 @@ class SQLBrite {
 
    /* querysinglerow($sql [, $values ])
       Executes a query and returns the first row.
-      Reports any errors, and returns and empty array
+      Reports any errors, and returns an empty array
       if there were no results.
       If $values is given, it should be an array of values
       to replace placeholders in the query. See sql().

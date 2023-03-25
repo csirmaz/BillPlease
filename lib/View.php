@@ -124,8 +124,8 @@ class View {
             $out .= $SLD->fuse(
                 'chart_timeline_day', array(
                     '$date' => $Day->get_js_date(), 
-                    '$timedsum' => - ($timedsum + $adjustment),
-                    '$sum' => - ($sum + $adjustment),
+                    '$timedsum' => round(- ($timedsum + $adjustment), 2),
+                    '$sum' => round(- ($sum + $adjustment), 2),
                     '$antitle' => $antitle,
                     '$antext' => $antext
                 )
