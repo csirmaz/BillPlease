@@ -46,8 +46,8 @@ class CostsDB extends SQLBrite {
          $this->error('internal_fsck(unixdayto value) failed');
       }
       // The following may not be necessary
-      if ($this->querysingle('select count(*) from costs where timespan<1') != 0) {
-         $this->error('internal_fsck(timespan less than 1) failed');
+      if ($this->querysingle('select count(*) from costs where timespan=0') != 0) {
+         $this->error('internal_fsck(timespan) failed');
       }
       if ($this->querysingle('select count(*) from costs where unixday is null') != 0) {
          $this->error('internal_fsck(unixday is null) failed');

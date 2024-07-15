@@ -30,7 +30,7 @@ class View {
         }
     }
 
-    public static function page_list($DB, $nowday, $list) {
+    public static function page_list($DB, $nowday, $list, $searchterms) {
         $APP = Application::get();
         $SLD = $APP->solder();
         $shortcuts = Html::shortcuts($DB);
@@ -50,7 +50,8 @@ class View {
                 '$summary' => Summary::render($nowday),
                 '$list' => $list,
                 '$firstcheckedhtml' => $APP->first_checked()->gethtml(),
-                '$shortcutsjs' => $shortcuts['js']
+                '$shortcutsjs' => $shortcuts['js'],
+                'searchterms' => $searchterms
             )
         );
     }
@@ -74,9 +75,25 @@ class View {
             )
         );
     }
+    
+    public static function recently_modified($APP) {
+        $SLD = $APP->solder();
+        $DB = $APP->db();
+        $nowday = $APP->nowday()->ud();
+        $List = Html::table_header_row('Recently modified items (from least to most recent)',false,false,false,false,true);
+        $DB->query_callback('select * from (select * from costs order by id desc limit 80) order by id asc', false,
+            function($r)use($nowday, &$List){
+                $item = Item::from_db($r);
+                $item->set_nowday($nowday);
+                $List .= $item->to_html(true /*add date*/);
+            }
+        );
+        $List .= Html::table_footer_row('^ most recently modified');
+        print View::page_list($DB, $nowday, $List, '' /* $searchterm */);
+    }
 
     /* $fromday==0 for full chart. Otherwise it is the offset */
-    public static function chart_timeline($APP, $fromday, $useadjust) {
+    public static function chart_timeline($APP, $fromday) {
         $SLD = $APP->solder();
         $DB = $APP->db();
         $sum = 0;
@@ -99,15 +116,9 @@ class View {
             $timedsum += $Day->get_timedsum();
             
             $adjustment = 0;
-            if($useadjust && function_exists('\\BillPleaseExternal\\day_sum_adjust')) {
-                $adjustment = \BillPleaseExternal\day_sum_adjust($Day);
-            }
 
             # annotation
             $antext = $APP->first_checked()->forday($d);
-            if($useadjust && $d == $nowday) {
-                $antext .= ' Adjustment: ' . sprintf('%.2f', $adjustment);
-            }
             if($antext === '') {
                 $antext = 'undefined';
                 $antitle = 'undefined';
@@ -133,7 +144,6 @@ class View {
         }
 
         print $SLD->fuse('chart_timeline_page', array('$data' => $out, 'title' => Texts::systitle()));
-
     }
 
     public static function chart_bar($APP) {
@@ -143,7 +153,7 @@ class View {
 
         $data = self::_barchart(
             $DB,
-            ($DB->querysingle('select min(unixday) from costs') + 0),
+            FALSE, // ($DB->querysingle('select min(unixday) from costs') + 0),
             $step,
             $nowday,
             'graph'
@@ -219,7 +229,14 @@ class View {
         if($step != 30) {
             $dayfrom = $dayto - floor(($dayto - $dayfrom) / $step) * $step;
         }
-        $dayfrom = new UnixDay($dayfrom);
+        if($dayfrom === FALSE) {
+            $dayfrom = new UnixDay($dayto);
+            for($i=0; $i<24; $i++) {
+                $dayfrom->sub_month();
+            }
+        } else {
+            $dayfrom = new UnixDay($dayfrom);
+        }
         $dayto = new UnixDay($dayto);
         if($step == 30) { // Simulate pcm steps
             $dayfrom->set_day($dayto->day());
@@ -246,8 +263,8 @@ class View {
             $TYP->sum(
                 $udfrom,
                 $udto,
-                true,
-                5000 /* TODO MAX VALUE */
+                true, /* timed */
+                false /* MAX VALUE */
             );
             if($format == 'graph') {
                 $databyie .= ',' . implode(',', $TYP->get_gensums_corrected()) . ']';

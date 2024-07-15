@@ -187,6 +187,7 @@ $(function(){
         var $body = $('.bp-long-items-modal .modal-body');
         $body.html('Loading...');
         $.ajax({
+            url: '?',
             data: {
                 view:'longitems',
                 ud: $(e.target).data('ud')
