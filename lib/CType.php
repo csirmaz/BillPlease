@@ -48,7 +48,7 @@ class CType {
     * If $timed is true, adjust the sum according to the timespan of the items.
     * $dayfrom and $dayto are inclusive.
     */
-   public function sum($dayfrom, $dayto, $timed = false, $maxvalue = false) {
+   public function sum($dayfrom, $dayto, $timed = false) {
       // This keeps the ordering right!
       foreach ($this->types as $sign => $val) {
          $this->sums[$sign] = 0;
@@ -56,32 +56,40 @@ class CType {
       $this->gensums = array('+' => 0, '-' => 0);
 
       if ($timed) {
-         $query = 'select * from costs where istransfer=0 and unixdayto > ? and unixday <= ?';
+         // {TIMEDVALUE}*
+         // Note that here we compare a time period to a time period
+         $query = 'select * from costs where istransfer=0 and ((unixdayto > ? and unixday <= ?) or (unixday > ? and unixdayto <= ?))';
+         $query_args = array($dayfrom, $dayto, $dayfrom, $dayto);
       } else {
          $query = 'select * from costs where istransfer=0 and unixday >= ? and unixday <= ?';
+         $query_args = array($dayfrom, $dayto);
       }
 
+      // debug $q2 = 'select count(*) '.substr($query, 8);
+      // debug print_r([$q2, $query_args, $this->DB->querysingle($q2, $query_args)]);
+      
       $this->DB->query_callback(
          $query,
-         array($dayfrom, $dayto),
-         function ($r) use ($dayto, $dayfrom, $timed, $maxvalue) {
+         $query_args,
+         function ($r) use ($dayto, $dayfrom, $timed) {
             $item = Item::from_db($r);
-            $t = $this->types[$item->get_ctype() ];
+            $t = $this->types[$item->get_ctype()];
             $v = $item->realvalue();
 
             if ($timed) {
-               $visiblespan = min($dayto, $item->get_unixdayto() - 1) - max($dayfrom, $item->get_unixday()) + 1;
-               $v = $v * $visiblespan / $item->get_timespan();
+               // {TIMEDVALUE}*
+               $item_from = min($item->get_unixdayto(), $item->get_unixday());
+               $item_to = max($item->get_unixdayto(), $item->get_unixday());
+               $visiblespan = min($dayto, $item_to - 1) - max($dayfrom, $item_from) + 1;
+               $v = $v * $visiblespan / abs($item->get_timespan());
             }
-
-            if($maxvalue !== false && abs($v) > $maxvalue){ $v = ($v / abs($v)) * $maxvalue; }
 
             if ($v < 0) { // income
                $this->gensums['+'] -= $v;
             } else {
                $this->gensums['-'] += $v;
                $c = $r['ctype'];
-               $this->sums[ $item->get_ctype() ] += $v;
+               $this->sums[$item->get_ctype()] += $v;
             }
          }
       );

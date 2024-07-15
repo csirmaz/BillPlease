@@ -170,17 +170,6 @@ class View {
         );
     }
     
-    // CSV output from business entries
-    public static function chart_business_csv() {
-        $out = \BillPleaseExternal\chart_business_csv();
-         
-        header("Content-type: text/csv");
-        header("Content-Disposition: attachment; filename=business.csv");
-        header("Pragma: no-cache");
-        header("Expires: 0");
-        print $out;
-    }
-
     // CSV output from monthly outgoings by type
     public static function chart_csv($APP) {
         $DB = $APP->db();
@@ -205,8 +194,8 @@ class View {
 
     private static function _barchart(
         $DB,
-        $dayfrom, // not object
-        $step,
+        $dayfrom, // not object, FALSE to step back 24 months
+        $step, // in days. 30 to use months
         $dayto,
         $format // "graph" or "csv"
     ) {
@@ -229,7 +218,7 @@ class View {
         if($step != 30) {
             $dayfrom = $dayto - floor(($dayto - $dayfrom) / $step) * $step;
         }
-        if($dayfrom === FALSE) {
+        if($dayfrom === FALSE && $step == 30) {
             $dayfrom = new UnixDay($dayto);
             for($i=0; $i<24; $i++) {
                 $dayfrom->sub_month();
@@ -260,12 +249,7 @@ class View {
             }
             $udto = $dayfrom->ud();
 
-            $TYP->sum(
-                $udfrom,
-                $udto,
-                true, /* timed */
-                false /* MAX VALUE */
-            );
+            $TYP->sum($udfrom, $udto, true /* get timed sum */);
             if($format == 'graph') {
                 $databyie .= ',' . implode(',', $TYP->get_gensums_corrected()) . ']';
             } else {

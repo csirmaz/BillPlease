@@ -40,7 +40,7 @@ class Item extends ItemData {
         // Always delete modified entry from DB
         $oldid = $RequestObj->get_int('oldid');
         if($oldid != - 1) {
-	    ItemData::delete_item($DB, $oldid);
+            ItemData::delete_item($DB, $oldid);
         }
 
         self::from_raw(
@@ -151,12 +151,13 @@ class Item extends ItemData {
     }
 
     public function to_html_line($ud_now) {
-        $perday = $this->value / $this->timespan;
+        // {TIMEDVALUE}*
+        $perday = $this->value / abs($this->timespan);
         return '<tr><td>' . implode(
             '</td><td>',
             array(
                 $this->uday->simple_string(),
-                $this->name,
+                htmlspecialchars($this->name),
                 printsum($this->value),
                 printsum($perday * 365 / 12) . '/m ',
                 printsum($perday) . '/d',
