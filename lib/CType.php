@@ -127,6 +127,10 @@ class CType {
    public function get_gensums() {
       return $this->gensums;
    }
+   
+    public function get_saving() {
+        return $this->gensums['-'] - $this->gensums['+'];
+    }
 
    /** Retrun income/expense sums minus expenses marked as 'X' */
    public function get_gensums_corrected() {

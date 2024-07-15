@@ -158,6 +158,12 @@ class View {
             $nowday,
             'graph'
         );
+        
+        $extracontent = '';
+        if(function_exists('\BillPleaseExternal\chart_bar_hook')) {
+            $extracontent = \BillPleaseExternal\chart_bar_hook($DB, $nowday);
+        }
+        
         print $APP->solder()->fuse(
             'chart_bar_page',
             array(
@@ -165,7 +171,8 @@ class View {
                 '$bycategory' => $data[0],
                 '$incomeexpense' => $data[1],
                 '$colors' => implode(',', $data[2]),
-                'intv' => ($step == 30 ? 'monthly' : $step . '-day')
+                'intv' => ($step == 30 ? 'monthly' : $step . '-day'),
+                '$extracontent' => $extracontent
             )
         );
     }
