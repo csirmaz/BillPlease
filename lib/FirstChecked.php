@@ -65,7 +65,7 @@ class FirstChecked {
                     );
     
                     if(!isset($me->data[$r['unixday']])) { $me->data[$r['unixday']] = []; }
-                    $me->data[$r['unixday']][] = $r['accountto'] . ' (unchecked)';
+                    // Not needed in graph: $me->data[$r['unixday']][] = $r['accountto'] . ' (unchecked)';
                     
                     // Now find the latest checked item before the first unchecked one
                     $r2 = $DB->querysinglerow(

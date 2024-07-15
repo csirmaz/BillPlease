@@ -20,12 +20,12 @@
 
 /** Class representing an expense item */
 class ItemData {
-    protected $id;
+    public $id;
 
     protected $uday; /*< UnixDay object */
     protected $udayto; /*< UnixDay object; $uday+$timespan */
 
-    protected $name;
+    public $name;
     protected $value; /*< in the object, not an integer; in the DB, multiplied by 100 */
     protected $timespan;
     protected $accountto;
@@ -36,7 +36,6 @@ class ItemData {
     protected $business;
     protected $clong;
     protected $infuture = false; /*< Not in DB. Depends on current time. */
-    protected $activelong = false; /*< Not in DB. Depends on current time. */
 
     /** Expects an array keyed on property names and with appropriate values */
     private function __construct($attrs = array()) {
@@ -104,7 +103,7 @@ class ItemData {
         }
 
         // fix timespan
-        if((!isset($attrs['timespan'])) || $attrs['timespan'] < 1) {
+        if((!isset($attrs['timespan'])) || $attrs['timespan'] == 0) {
             $attrs['timespan'] = 1;
         } elseif ($attrs['timespan'] == 30) {
             $attrs['timespan'] = UnixDay::month_length($attrs['uday']->month());
@@ -126,10 +125,6 @@ class ItemData {
     public function set_nowday($nowday) { // expects unixtime/60/60/24
         if($this->uday->ud() > $nowday) {
             $this->infuture = true;
-        } else {
-            if($this->uday->ud() <= $nowday && $this->udayto->ud() > $nowday) {
-                $this->activelong = true;
-            }
         }
         return $this;
     }
@@ -296,6 +291,9 @@ class ItemData {
         $this->business = ($this->business ? 0 : 1);
         return $this;
     }
+
+
+    public function set_account_to($a) { $this->accountto = $a; return $this; }
 
 
     /** Toggle the checked status of any item */

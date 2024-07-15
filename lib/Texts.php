@@ -27,15 +27,17 @@ class Texts {
     * available as an option
     */
    private static $timespantexts = array( //
-   1 => 'daily*', //
-   7 => 'weekly*', //
-   15 => 'biweekly*', //
-   22 => 'triweekly*', //
-   30 => 'monthly*', //
-   31 => 'monthly', //
-   91 => 'quarterly*', //
-   182 => 'half a year*', //
-   365 => 'yearly*' );
+        1 => 'daily*', //
+        7 => 'weekly*', //
+        15 => 'biweekly*', //
+        22 => 'triweekly*', //
+        30 => 'monthly*', //
+        31 => 'monthly', //
+        91 => 'quarterly*', //
+        182 => 'half a year*', //
+        365 => 'yearly*',
+        -365 => 'future year*'
+   );
 
    /** Returns the name of the system */
    public static function systitle() {
