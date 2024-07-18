@@ -115,9 +115,10 @@ class View {
             $sum += $Day->get_sum();
             $timedsum += $Day->get_timedsum();
             
-            $adjustment = 0;
-
-            # annotation
+            $sum_out = round(-$sum, 2);
+            $timedsum_out = round(-$timedsum, 2);
+            
+            # annotation (timed)
             $antext = $APP->first_checked()->forday($d);
             if($antext === '') {
                 $antext = 'undefined';
@@ -125,7 +126,15 @@ class View {
             }
             else {
                 $antitle = '"' . $antext . '"';
-                $antext = '""';
+                $antext = '"' . $timedsum_out . '"';
+            }
+            
+            # annotation (not timed)
+            $an2title = 'undefined';
+            $an2text = 'undefined';
+            if($d >= $nowday - 70 && (($nowday - $d) % 30) == 0) {
+                $an2title = '"Sum"';
+                $an2text = '"' . $sum_out . '"';
             }
             
             //[new Date(2008, 1 ,1), 30000, undefined, undefined, 40645, undefined, undefined],
@@ -135,10 +144,12 @@ class View {
             $out .= $SLD->fuse(
                 'chart_timeline_day', array(
                     '$date' => $Day->get_js_date(), 
-                    '$timedsum' => round(- ($timedsum + $adjustment), 2),
-                    '$sum' => round(- ($sum + $adjustment), 2),
+                    '$timedsum' => $timedsum_out,
+                    '$sum' => $sum_out,
                     '$antitle' => $antitle,
-                    '$antext' => $antext
+                    '$antext' => $antext,
+                    '$an2title' => $an2title,
+                    '$an2text' => $an2text
                 )
             );
         }
