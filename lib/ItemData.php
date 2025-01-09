@@ -106,7 +106,13 @@ class ItemData {
         if((!isset($attrs['timespan'])) || $attrs['timespan'] == 0) {
             $attrs['timespan'] = 1;
         } elseif ($attrs['timespan'] == 30) {
-            $attrs['timespan'] = UnixDay::month_length($attrs['uday']->month());
+            $month = $attrs['uday']->month();
+            $day = $attrs['uday']->day();
+            if($day > 27) {
+                $month++;
+                if($month > 12) { $month = 1; }
+            }
+            $attrs['timespan'] = UnixDay::month_length($month);
             
         }
 

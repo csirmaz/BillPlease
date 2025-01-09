@@ -60,16 +60,36 @@ class Day {
     private function load_sums() {
         if(!isset($this->sum)) {
             // Index: costs_acfr_ud_v
-            $this->sum = $this->DB->querysingle(
-                'select sum(costs.value * accountnames.rate) from costs, accountnames where costs.unixday = ? and costs.accountfrom = \'\' and accountnames.accounttofrom = costs.accountto',
+            $this->sum = $this->DB->querysingle(<<<'EOQ'
+                select 
+                    sum(costs.value * accountnames.rate) 
+                from costs, accountnames 
+                where 
+                    costs.unixday = ? 
+                    and costs.accountfrom = '' 
+                    and accountnames.accounttofrom = costs.accountto
+EOQ
+                ,
                 array($this->uday->ud())
             ) / 100;
         }
         if(!isset($this->timedsum)) {
             // Index: costs_acfr_ud_udt_v_s
-            $this->timedsum = $this->DB->querysingle(
-                'select sum((costs.value*1.0)*accountnames.rate/costs.timespan) from costs, accountnames where costs.unixday <= ? and costs.unixdayto > ? and costs.accountfrom = \'\' and accountnames.accounttofrom = costs.accountto',
-                array($this->uday->ud(), $this->uday->ud())
+            // {TIMEDVALUE}*
+            $this->timedsum = $this->DB->querysingle(<<<'EOQ'
+                select 
+                    sum(
+                        (costs.value*1.0) * accountnames.rate / abs(costs.timespan)
+                    ) 
+                from costs, accountnames 
+                where 
+                    ((costs.unixday <= ? and costs.unixdayto > ?)
+                        or (costs.unixdayto <= ? and costs.unixday > ?))
+                    and costs.accountfrom = '' 
+                    and accountnames.accounttofrom = costs.accountto
+EOQ
+                ,
+                array($this->uday->ud(), $this->uday->ud(), $this->uday->ud(), $this->uday->ud())
             ) / 100;
         }
     }
@@ -93,9 +113,10 @@ class Day {
         if(count($this->longitems) > 0) {
             return;
         }
+        // {TIMEDVALUE}*
         $this->DB->query_callback(
-            'select * from costs where unixday<=? and unixdayto>? order by unixday, id', // excluding today
-            array($this->uday->ud(), $this->uday->ud()),
+            'select * from costs where ((unixday<=? and unixdayto>?) or (unixdayto<=? and unixday>?)) order by unixday, id', // excluding today
+            array($this->uday->ud(), $this->uday->ud(), $this->uday->ud(), $this->uday->ud()),
             function ($r) use ($nowday) {
                 $item = Item::from_db($r);
                 $item->set_nowday($nowday);
@@ -145,11 +166,6 @@ class Day {
         */
         foreach($this->longitems as $item) {
             $out .= $item->to_html_line($this->uday);
-        }
-        
-        if(function_exists('\\BillPleaseExternal\\day_sum_adjust')) {
-            $adjustment = \BillPleaseExternal\day_sum_adjust($this);
-            $out .= '<tr><td></td><td>ADJUSTMENT TODAY</td><td>'.printsum($adjustment).'</td></tr>';    
         }
         
         return Application::get()->solder()->fuse(

@@ -1,25 +1,35 @@
 
 BP = {
    
-   // Functions to interact with the cookie storing UI data
-   Storage: { 
-      data: (Cookies.getJSON('storage') || {}),
-      get: function(key, defvalue){ return (typeof(BP.Storage.data[key]) == 'undefined' ? defvalue : BP.Storage.data[key]); },
-      set: function(key, value){ BP.Storage.data[key] = value; Cookies.set('storage', BP.Storage.data); },
-      del: function(key){ delete BP.Storage.data[key]; Cookies.set('storage', BP.Storage.data); }
-   },
+    // Functions to interact with the cookie storing UI data
+    Storage: { 
+        data: (Cookies.getJSON('storage') || {}),
+        get: function(key, defvalue){ return (typeof(BP.Storage.data[key]) == 'undefined' ? defvalue : BP.Storage.data[key]); },
+        set: function(key, value){ BP.Storage.data[key] = value; Cookies.set('storage', BP.Storage.data); },
+        del: function(key){ delete BP.Storage.data[key]; Cookies.set('storage', BP.Storage.data); }
+    },
 
-   // Check if a string is a float
-   checkfl: function(v, msg){
-      if(v.match(/^\-?[\d\.]+$/)){ // returns null?
-          var vv = v.match(/\./g);
-         if((!vv) || vv.length<=1){
-            return parseFloat(v);
-         }
-      }
-      alert(msg + ' is not a number');
-      return false;
-   },
+    // Check if a string is a float (and has a precision of 1/100)
+    checkfl: function(v, msg) {
+        if(v.match(/^\-?[\d\.]+$/)) { // returns null?
+            var vv = v.match(/\./g);
+            if((!vv) || vv.length<=1) {
+                n = parseFloat(v);
+                if(n === false) {
+                    alert(msg + ' is not a number');
+                    return false;
+                }
+                if(Math.abs(Math.floor(n*100+.5) - n*100) > 1e-8) {
+                    console.log('v', v, 'n', n, Math.floor(n*100), n*100);
+                    if(confirm(msg + ' is not in the right format. Use?')) { return n; }
+                    return false;
+                }
+                return n;
+            }
+        }
+        alert(msg + ' is not a number');
+        return false;
+    },
 
    // Check if a string is an integer
    checkint: function(v, msg){
@@ -146,10 +156,15 @@ $(function(){
     var submit_search = function() { 
         document.location.search = 'view=search&t=' + encodeURIComponent($('.searchform input').val()); 
     };
-    $('.searchform a').on('click', submit_search);
+    $('.searchform .bp-do-search').on('click', submit_search);
     $('.searchform input').on('keydown', function(e){ 
         e.stopPropagation();
         if (e.which == 13) { submit_search(); }
+    });
+    // Search help
+    $('.bp-search-help-t').on('click', function(e){
+        $('.bp-search-help').slideToggle();
+        e.preventDefault();
     });
 
     // New entry
