@@ -26,10 +26,64 @@ class Summary {
       --------------
       The configuration is stored in the costsmeta table as a string using the key 'summaryconfig'.
       Entries are separated by commas; columns by semicolons.
-      The account name is specified, '+' means that the checked sum should also be added.
+      The account name is specified, 
+      '+' means that the checked sum should also be added,
+      '%' means that the sum should be included with the rate.
       '#' adds the sum and the timed sum.
-      Example: A+;B+,C,#
+      If an element starts with '(', list accounts to sum up.
+      Example: A+,B;C+,D,#
    */
+   
+    public static function get_all_sum($DB, $nowday) {
+        return ($DB->querysingle(<<<'EOQ'
+            select 
+                sum(
+                    (accountnames.rate*1.0) * costs.value
+                ) 
+            from costs 
+            join accountnames on costs.accountto = accountnames.accounttofrom 
+            where 
+                costs.accountfrom = '' 
+                and costs.unixday <= ?
+EOQ
+            , 
+            array($nowday)
+        ) / 100);
+   }
+   
+    public static function get_tail_sum($DB, $nowday) {
+        // Tails of long entries (and beginnings of delayed long entries)
+        // {TIMEDVALUE}*
+        return ($DB->querysingle(<<<'EOQ'
+            select 
+                sum(
+                    (accountnames.rate*1.0) * costs.value * (max(costs.unixdayto, costs.unixday) - 1 - ?) / abs(costs.timespan)
+                ) 
+            from costs 
+            join accountnames on costs.accountto = accountnames.accounttofrom 
+            where 
+                costs.accountfrom = '' 
+                and (
+                    (costs.unixday <= ? and costs.unixdayto > (?+1))
+                    or (costs.unixdayto <= ? and costs.unixday > (?+1))
+                )
+EOQ
+            ,
+            array($nowday,$nowday,$nowday,$nowday,$nowday)
+        ) / 100);
+   }
+   
+   private static function get_account_sum($DB, $acc, $nowday) {
+        return (( $DB->querysingle('select sum(value) from costs where accountto = ? and unixday <= ?', array($acc, $nowday))
+        -
+        $DB->querysingle('select sum(value) from costs where accountfrom = ? and unixday <= ?', array($acc, $nowday))
+        ) / 100);
+   }
+   
+   private static function get_account_rate($DB, $acc) {
+        return $DB->querysingle('select rate from accountnames where accounttofrom=?', array($acc));
+   }
+
    
    public static function render($nowday){
 

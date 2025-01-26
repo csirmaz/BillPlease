@@ -34,7 +34,7 @@ class ItemData {
     protected $istransfer;
     protected $ctype; /*< in the object, can be 'X'; in the DB, empty string is used */
     protected $business;
-    protected $clong;
+    protected $clong; /*< comment on item */
     protected $infuture = false; /*< Not in DB. Depends on current time. */
 
     /** Expects an array keyed on property names and with appropriate values */

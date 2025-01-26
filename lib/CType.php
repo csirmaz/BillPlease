@@ -88,7 +88,6 @@ class CType {
                $this->gensums['+'] -= $v;
             } else {
                $this->gensums['-'] += $v;
-               $c = $r['ctype'];
                $this->sums[$item->get_ctype()] += $v;
             }
          }
