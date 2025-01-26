@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2019 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2019-2025 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -22,10 +22,11 @@
 
 class CType {
 
-   private $DB = array();
+   private $DB;
    private $types = array(); /*< label => array(name=>, chartcolor=>, chartorder=>) */
    private $sums = array(); /*< label => sum */
    private $gensums = array(); /*< '+'/'-' => sum */
+   private $logs = array();
 
    public function __construct($DB) {
 
@@ -48,12 +49,13 @@ class CType {
     * If $timed is true, adjust the sum according to the timespan of the items.
     * $dayfrom and $dayto are inclusive.
     */
-   public function sum($dayfrom, $dayto, $timed = false) {
+   public function sum($dayfrom, $dayto, $timed=false, $debug=false) {
       // This keeps the ordering right!
       foreach ($this->types as $sign => $val) {
          $this->sums[$sign] = 0;
       }
       $this->gensums = array('+' => 0, '-' => 0);
+      $this->logs = [];
 
       if ($timed) {
          // {TIMEDVALUE}*
@@ -67,24 +69,49 @@ class CType {
 
       // debug $q2 = 'select count(*) '.substr($query, 8);
       // debug print_r([$q2, $query_args, $this->DB->querysingle($q2, $query_args)]);
+      $log_header = ['itemDate', 'itemName', 'value', 'category','account', 'from','to', 'days', 'visibleFrom','visibleTo', 'visibleDays', 'orgValue','adjValue'];
       
       $this->DB->query_callback(
          $query,
          $query_args,
-         function ($r) use ($dayto, $dayfrom, $timed) {
+         function ($r) use ($dayto, $dayfrom, $timed, $debug, $log_header) {
             $item = Item::from_db($r);
             $t = $this->types[$item->get_ctype()];
             $v = $item->realvalue();
+            
+            if($debug) {
+                $log = $item->get_info_list();
+            }
 
             if ($timed) {
                // {TIMEDVALUE}*
                $item_from = min($item->get_unixdayto(), $item->get_unixday());
                $item_to = max($item->get_unixdayto(), $item->get_unixday());
-               $visiblespan = min($dayto, $item_to - 1) - max($dayfrom, $item_from) + 1;
+               $visible_from = max($dayfrom, $item_from);
+               $visible_to = min($dayto, $item_to - 1);
+               $visiblespan = $visible_to - $visible_from + 1;
                $v = $v * $visiblespan / abs($item->get_timespan());
+               if($debug) {
+                  $log[] = (new UnixDay($item_from))->simple_string(); # from
+                  $log[] = (new UnixDay($item_to))->simple_string(); # to
+                  $log[] = ($item_to-$item_from); # days
+                  $log[] = (new UnixDay($visible_from))->simple_string(); # visibleFrom
+                  $log[] = (new UnixDay($visible_to))->simple_string(); # visibleTo
+                  $log[] = ($visiblespan); # visibleDays
+                  $log[] = $item->realvalue(); # orgValue
+                  $log[] = $v; # adjValue
+               }
+            }
+            
+            if($debug) {
+               if(isset($this->logs[$item->get_ctype()])) {
+                  $this->logs[$item->get_ctype()][] = $log;
+                } else {
+                  $this->logs[$item->get_ctype()] = [$log_header, $log];
+               }
             }
 
-            if ($v < 0) { // income
+            if ($v < 0 && $item->get_ctype() == 'X') { // income (ONLY TYPE X)
                $this->gensums['+'] -= $v;
             } else {
                $this->gensums['-'] += $v;
@@ -92,6 +119,16 @@ class CType {
             }
          }
       );
+      
+//       if($debug) {
+//          foreach($this->sums as $label => $sum) {
+//             if(isset($this->logs[$label])) {
+//                $this->logs[$label] .= "SUM=$sum\n";
+//             } else {
+//                $this->logs[$label] = "SUM=$sum\n";
+//             }
+//          }
+//       }
    }
 
    public function get_sum($label) {
@@ -121,6 +158,10 @@ class CType {
          }
          $callback($label, $data);
       }
+   }
+   
+   public function get_logs_callback($callback) {
+      foreach ($this->logs as $label => $data) { $callback($label, $data); }
    }
 
    public function get_gensums() {

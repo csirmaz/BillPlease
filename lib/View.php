@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2016,2017,2019 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2016-2025 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -163,11 +163,12 @@ class View {
         $step = 30;
 
         $data = self::_barchart(
-            $DB,
-            FALSE, // ($DB->querysingle('select min(unixday) from costs') + 0),
+            $APP,
+            FALSE, // dayfrom ($DB->querysingle('select min(unixday) from costs') + 0),
             $step,
             $nowday,
-            'graph'
+            'graph',
+            $APP->debug()
         );
         
         $extracontent = '';
@@ -195,11 +196,12 @@ class View {
         $step = 30;        
 
         $data = self::_barchart(
-            $DB,
-            ($DB->querysingle('select min(unixday) from costs') + 0),
+            $APP,
+            ($DB->querysingle('select min(unixday) from costs') + 0), // dayfrom
             $step,
             $nowday,
-            'csv'
+            'csv',
+            FALSE
         );
 
         header("Content-type: text/csv");
@@ -209,15 +211,20 @@ class View {
         print $data[0];
         # print $APP->solder()->fuse('chart_csv_page', array('title' => Texts::systitle(), '$data' => $data[0]));
     }
+    
+    private static function _chart_esc($s, $format) {
+        return Solder::escape($s, $format == 'graph' ? 'js' : 'csv');
+    }
 
     private static function _barchart(
-        $DB,
+        $APP,
         $dayfrom, // not object, FALSE to step back 24 months
         $step, // in days. 30 to use months
         $dayto,
-        $format // "graph" or "csv"
+        $format, // "graph" or "csv"
+        $debug=FALSE // bool
     ) {
-
+        $DB = $APP->db();
         $TYP = new CType($DB);
         $colors = array();
         $databytype = ''; // by-type graph (inlcudes income-expense if $format!='graph')
@@ -226,8 +233,8 @@ class View {
         $databyie = ($format == 'graph' ? "['Date','Income','Expense']" : '');
         $databytype = ($format == 'graph' ? "['Date'" : '"Date","Income","Expense"');
         $TYP->get_type_callback(
-            function ($label, $typedata) use (&$colors, &$databytype) {
-                $databytype .= ',"' . $typedata['name'] . '"';
+            function ($label, $typedata) use (&$colors, &$databytype, $format) {
+                $databytype .= ',"' . self::_chart_esc($typedata['name'], $format) . '"';
                 $colors[] = "'" . $typedata['chartcolor'] . "'";
             }
         );
@@ -249,7 +256,10 @@ class View {
             $dayfrom->set_day($dayto->day());
         }
 
+        // Loop through time periods
         while($dayfrom->lt($dayto)) {
+        
+            if($debug) { print("DEBUG TIME PERIOD BASE={$dayfrom->simple_string()} MAX={$dayto->simple_string()}\n"); }
 
             $dt = $dayfrom->simple_string();
             $dt = ($format == 'graph' ? ",\n['" . $dt . "'" : "\n\"" . $dt . '"');
@@ -266,8 +276,25 @@ class View {
                 $dayfrom->add($step);
             }
             $udto = $dayfrom->ud();
+            
+            if($debug) { print("DEBUG TIME PERIOD FROM=".((new UnixDay($udfrom))->simple_string())." TO=".((new UnixDay($udto))->simple_string())."\n\n"); }
 
-            $TYP->sum($udfrom, $udto, true /* get timed sum */);
+            $TYP->sum($udfrom, $udto, true /* get timed sum */, $debug);
+            
+            if($debug) {
+                $TYP->get_logs_callback(
+                    function ($label, $data) use ($udfrom) {
+                        print("DEBUG CATEGORY=$label FROM=".((new UnixDay($udfrom))->simple_string())."\n");
+                        foreach($data as $row) {
+                            foreach($row as $v) {
+                                print(self::_chart_esc($v, "csv").",");
+                            }
+                            print("\n");
+                        }
+                    }
+                );
+            }
+            
             if($format == 'graph') {
                 $databyie .= ',' . implode(',', $TYP->get_gensums_corrected()) . ']';
             } else {

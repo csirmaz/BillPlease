@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2013,2019 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2013-2025 by Elod Csirmaz <http://www.github.com/csirmaz>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
