@@ -23,8 +23,9 @@ class Day {
     private $uday; /*< a UnixDay object */
     private $DB; /*< a CostsDB object */
 
-    private $sum;
-    private $timedsum;
+    private $sum; // daily balance (raw)
+    private $timedsum; // "timed" daily balance, corrected by recurrence
+    private $timed_weekly_sum; // "timed" balance of the previous 7 days
     private $items = array();
     private $longitems = array(); // recurring items affecting this day
     
@@ -40,24 +41,6 @@ class Day {
     }
 
     public function get_sum() {
-        $this->load_sums();
-        return $this->sum;
-    }
-
-    public function get_timedsum() {
-        $this->load_sums();
-        return $this->timedsum;
-    }
-    
-    public function get_uday() {
-        return $this->uday;
-    }
-
-    public function get_js_date() {
-        return $this->uday->js_date();
-    }
-
-    private function load_sums() {
         if(!isset($this->sum)) {
             // Index: costs_acfr_ud_v
             $this->sum = $this->DB->querysingle(<<<'EOQ'
@@ -73,6 +56,10 @@ EOQ
                 array($this->uday->ud())
             ) / 100;
         }
+        return $this->sum;
+    }
+
+    public function get_timedsum() {
         if(!isset($this->timedsum)) {
             // Index: costs_acfr_ud_udt_v_s
             // {TIMEDVALUE}*
@@ -92,6 +79,35 @@ EOQ
                 array($this->uday->ud(), $this->uday->ud(), $this->uday->ud(), $this->uday->ud())
             ) / 100;
         }
+        return $this->timedsum;
+    }
+    
+    public function get_timed_weekly_sum() {
+        if(!isset($this->timed_weekly_sum)) {
+            $sum = 0;
+            Item::period_sum(
+                $this->DB, 
+                $this->uday->ud()-6, // dayfrom
+                $this->uday->ud(), // dayto
+                TRUE, // timed
+                FALSE, // debug
+                function($item, $v, $debug, $log, $log_header) use (&$sum) {
+                    if($item->get_ctype() != 'EXC') { // exclude this type
+                        $sum += $v;
+                    }
+                }
+            );
+            $this->timed_weekly_sum = $sum;            
+        }
+        return $this->timed_weekly_sum;
+    }
+    
+    public function get_uday() {
+        return $this->uday;
+    }
+
+    public function get_js_date() {
+        return $this->uday->js_date();
     }
 
     public function load_items($nowday) {
@@ -145,7 +161,7 @@ EOQ
             Application::get()->solder()->fuse(
                 'day_footer',
                 array(
-                    '$timedsum' => printsum($this->get_timedsum()),
+                    '$timed_weekly_sum' => printsum($this->get_timed_weekly_sum()), // get_timedsum() unused
                     '$sum' => printsum($this->get_sum()),
                     'ud' => $this->uday->ud()
                 )

@@ -166,5 +166,64 @@ class Item extends ItemData {
             )
         ) . '</td></tr>';
     }
+    
+   /** Calculate sum for a time period (helper).
+    * If $timed is true, adjust the sum according to the timespan of the items.
+    * $dayfrom and $dayto are inclusive.
+    */
+    public static function period_sum($DB, $dayfrom, $dayto, $timed, $debug, $callback) {
+
+        if ($timed) {
+         // {TIMEDVALUE}*
+         // Note that here we compare a time period to a time period
+         $query = 'select * from costs where istransfer=0 and accountfrom=\'\' and ((unixdayto > ? and unixday <= ?) or (unixday > ? and unixdayto <= ?))';
+         $query_args = array($dayfrom, $dayto, $dayfrom, $dayto);
+      } else {
+         $query = 'select * from costs where istransfer=0 and accountfrom=\'\' and unixday >= ? and unixday <= ?';
+         $query_args = array($dayfrom, $dayto);
+      }
+
+      // debug $q2 = 'select count(*) '.substr($query, 8);
+      // debug print_r([$q2, $query_args, $this->DB->querysingle($q2, $query_args)]);
+      $log_header = ['itemDate', 'itemName', 'value', 'category','account', 'from','to', 'days', 'visibleFrom','visibleTo', 'visibleDays', 'orgValue','adjValue'];
+      
+      $DB->query_callback(
+         $query,
+         $query_args,
+         function ($r) use ($dayto, $dayfrom, $timed, $debug, $log_header, $callback) {
+            $item = Item::from_db($r);
+            $v = $item->realvalue();
+            
+            if($debug) {
+                $log = $item->get_info_list();
+            } else {
+                $log = [];
+            }
+
+            if ($timed) {
+               // {TIMEDVALUE}*
+               $item_from = min($item->get_unixdayto(), $item->get_unixday());
+               $item_to = max($item->get_unixdayto(), $item->get_unixday());
+               $visible_from = max($dayfrom, $item_from);
+               $visible_to = min($dayto, $item_to - 1);
+               $visiblespan = $visible_to - $visible_from + 1;
+               $v = $v * $visiblespan / abs($item->get_timespan());
+               if($debug) {
+                  $log[] = (new UnixDay($item_from))->simple_string(); # from
+                  $log[] = (new UnixDay($item_to))->simple_string(); # to
+                  $log[] = ($item_to-$item_from); # days
+                  $log[] = (new UnixDay($visible_from))->simple_string(); # visibleFrom
+                  $log[] = (new UnixDay($visible_to))->simple_string(); # visibleTo
+                  $log[] = ($visiblespan); # visibleDays
+                  $log[] = $item->realvalue(); # orgValue
+                  $log[] = $v; # adjValue
+               }
+            }
+            
+            $callback($item, $v, $debug, $log, $log_header);
+                        
+         }
+      );
+    }
 
 }

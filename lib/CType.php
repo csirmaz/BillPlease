@@ -56,53 +56,9 @@ class CType {
       }
       $this->gensums = array('+' => 0, '-' => 0);
       $this->logs = [];
-
-      if ($timed) {
-         // {TIMEDVALUE}*
-         // Note that here we compare a time period to a time period
-         $query = 'select * from costs where istransfer=0 and ((unixdayto > ? and unixday <= ?) or (unixday > ? and unixdayto <= ?))';
-         $query_args = array($dayfrom, $dayto, $dayfrom, $dayto);
-      } else {
-         $query = 'select * from costs where istransfer=0 and unixday >= ? and unixday <= ?';
-         $query_args = array($dayfrom, $dayto);
-      }
-
-      // debug $q2 = 'select count(*) '.substr($query, 8);
-      // debug print_r([$q2, $query_args, $this->DB->querysingle($q2, $query_args)]);
-      $log_header = ['itemDate', 'itemName', 'value', 'category','account', 'from','to', 'days', 'visibleFrom','visibleTo', 'visibleDays', 'orgValue','adjValue'];
       
-      $this->DB->query_callback(
-         $query,
-         $query_args,
-         function ($r) use ($dayto, $dayfrom, $timed, $debug, $log_header) {
-            $item = Item::from_db($r);
-            $t = $this->types[$item->get_ctype()];
-            $v = $item->realvalue();
-            
-            if($debug) {
-                $log = $item->get_info_list();
-            }
-
-            if ($timed) {
-               // {TIMEDVALUE}*
-               $item_from = min($item->get_unixdayto(), $item->get_unixday());
-               $item_to = max($item->get_unixdayto(), $item->get_unixday());
-               $visible_from = max($dayfrom, $item_from);
-               $visible_to = min($dayto, $item_to - 1);
-               $visiblespan = $visible_to - $visible_from + 1;
-               $v = $v * $visiblespan / abs($item->get_timespan());
-               if($debug) {
-                  $log[] = (new UnixDay($item_from))->simple_string(); # from
-                  $log[] = (new UnixDay($item_to))->simple_string(); # to
-                  $log[] = ($item_to-$item_from); # days
-                  $log[] = (new UnixDay($visible_from))->simple_string(); # visibleFrom
-                  $log[] = (new UnixDay($visible_to))->simple_string(); # visibleTo
-                  $log[] = ($visiblespan); # visibleDays
-                  $log[] = $item->realvalue(); # orgValue
-                  $log[] = $v; # adjValue
-               }
-            }
-            
+      Item::period_sum($this->DB, $dayfrom, $dayto, $timed, $debug,
+         function($item, $v, $debug, $log, $log_header) {
             if($debug) {
                if(isset($this->logs[$item->get_ctype()])) {
                   $this->logs[$item->get_ctype()][] = $log;
@@ -111,24 +67,27 @@ class CType {
                }
             }
 
-            if ($v < 0 && $item->get_ctype() == 'X') { // income (ONLY TYPE X)
-               $this->gensums['+'] -= $v;
-            } else {
-               $this->gensums['-'] += $v;
-               $this->sums[$item->get_ctype()] += $v;
+            if($item->get_ctype() != 'EXC') { // exclude this type
+               if ($v < 0 && $item->get_ctype() == 'X') { // income (ONLY TYPE X)
+                  $this->gensums['+'] -= $v;
+               } else {
+                  $this->gensums['-'] += $v;
+                  $this->sums[$item->get_ctype()] += $v;
+               }
             }
          }
       );
-      
-//       if($debug) {
-//          foreach($this->sums as $label => $sum) {
-//             if(isset($this->logs[$label])) {
-//                $this->logs[$label] .= "SUM=$sum\n";
-//             } else {
-//                $this->logs[$label] = "SUM=$sum\n";
-//             }
-//          }
-//       }
+
+      if($debug) {
+         // Add sums
+         foreach($this->sums as $label => $sum) {
+            if(isset($this->logs[$label])) {
+               $this->logs[$label][] = ["{$sum}"];
+            } else {
+               $this->logs[$label] = [$log_header, ["{$sum}"]];
+            }
+         }
+      }
    }
 
    public function get_sum($label) {
@@ -164,19 +123,15 @@ class CType {
       foreach ($this->logs as $label => $data) { $callback($label, $data); }
    }
 
-   public function get_gensums() {
-      return $this->gensums;
-   }
-   
     public function get_saving() {
         return $this->gensums['-'] - $this->gensums['+'];
     }
 
-   /** Retrun income/expense sums minus expenses marked as 'X' */
+   /** Retrun income/expense sums */
    public function get_gensums_corrected() {
       return array(
-         '+' => ($this->gensums['+'] - $this->sums['X']),
-         '-' => ($this->gensums['-'] - $this->sums['X'])
+         '+' => ($this->gensums['+']), // income
+         '-' => ($this->gensums['-'])  // expense
       );
    }
 
