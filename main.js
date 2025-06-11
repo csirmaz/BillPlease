@@ -161,6 +161,7 @@ $(function(){
         e.stopPropagation();
         if (e.which == 13) { submit_search(); }
     });
+
     // Search help
     $('.bp-search-help-t').on('click', function(e){
         $('.bp-search-help').slideToggle();

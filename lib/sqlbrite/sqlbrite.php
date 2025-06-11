@@ -58,6 +58,10 @@ class SQLBrite {
          $this->sqlerror($s);
       }
    }
+   
+   public function last_insert_id() {
+      return $this->DB->lastInsertRowID();
+   }
 
    /* exec_assert_change($sql, $values, $expected_no_rows)
       Executes a result-less query.

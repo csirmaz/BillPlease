@@ -81,7 +81,7 @@ class View {
         $DB = $APP->db();
         $nowday = $APP->nowday()->ud();
         $List = Html::table_header_row('Recently modified items (from least to most recent)',false,false,false,false,true);
-        $DB->query_callback('select * from (select * from costs order by id desc limit 80) order by id asc', false,
+        $DB->query_callback('select * from (select * from costs order by id desc limit 200) order by id asc', false,
             function($r)use($nowday, &$List){
                 $item = Item::from_db($r);
                 $item->set_nowday($nowday);
@@ -164,7 +164,7 @@ class View {
 
         $data = self::_barchart(
             $APP,
-            FALSE, // dayfrom ($DB->querysingle('select min(unixday) from costs') + 0),
+            '24months', // dayfrom ($DB->querysingle('select min(unixday) from costs') + 0),
             $step,
             $nowday,
             'graph',
@@ -173,7 +173,8 @@ class View {
         
         $extracontent = '';
         if(function_exists('\BillPleaseExternal\chart_bar_hook')) {
-            $extracontent = \BillPleaseExternal\chart_bar_hook($DB, $nowday);
+            $raw_month_data = self::_barchart($APP, '12months', 30, $nowday, 'data');
+            $extracontent = \BillPleaseExternal\chart_bar_hook($DB, $nowday, $raw_month_data);
         }
         
         print $APP->solder()->fuse(
@@ -218,24 +219,35 @@ class View {
 
     private static function _barchart(
         $APP,
-        $dayfrom, // not object, FALSE to step back 24 months
+        $dayfrom, // not object | "12months" | "24months"
         $step, // in days. 30 to use months
         $dayto,
-        $format, // "graph" or "csv"
+        $format, // "graph" | "csv" | "data"
         $debug=FALSE // bool
     ) {
         $DB = $APP->db();
         $TYP = new CType($DB);
+        
         $colors = array();
-        $databytype = ''; // by-type graph (inlcudes income-expense if $format!='graph')
-        $databyie = ''; // income-expense graph (used only if $format=='graph')
+        $databytype = ''; // by-type graph or csv (inlcudes income-expense if $format!='graph')
+        $databyie = ''; // income-expense graph or csv (used only if $format=='graph')
+        $outdata = [ // used if $format=='data'
+            '_INCOME' => ['name'=>'Income','color'=>'#000','values'=>[]],
+            '_EXPENSE' => ['name'=>'Income','color'=>'#000','values'=>[]]
+        ];
+        
         // Data header
         $databyie = ($format == 'graph' ? "['Date','Income','Expense']" : '');
         $databytype = ($format == 'graph' ? "['Date'" : '"Date","Income","Expense"');
         $TYP->get_type_callback(
-            function ($label, $typedata) use (&$colors, &$databytype, $format) {
+            function ($label, $typedata) use (&$colors, &$databytype, &$outdata, $format) {
                 $databytype .= ',"' . self::_chart_esc($typedata['name'], $format) . '"';
                 $colors[] = "'" . $typedata['chartcolor'] . "'";
+                $outdata[$label] = [
+                    'name' => $typedata['name'],
+                    'color' => $typedata['chartcolor'],
+                    'values' => []
+                ];
             }
         );
         $databytype .= ($format == 'graph' ? "]" : '');
@@ -243,9 +255,14 @@ class View {
         if($step != 30) {
             $dayfrom = $dayto - floor(($dayto - $dayfrom) / $step) * $step;
         }
-        if($dayfrom === FALSE && $step == 30) {
+        if($dayfrom === '24months') {
             $dayfrom = new UnixDay($dayto);
             for($i=0; $i<24; $i++) {
+                $dayfrom->sub_month();
+            }
+        } elseif($dayfrom === '12months') {
+            $dayfrom = new UnixDay($dayto);
+            for($i=0; $i<12; $i++) {
                 $dayfrom->sub_month();
             }
         } else {
@@ -277,15 +294,21 @@ class View {
             }
             $udto = $dayfrom->ud();
             
-            if($debug) { print("DEBUG TIME PERIOD FROM=".((new UnixDay($udfrom))->simple_string())." TO=".((new UnixDay($udto))->simple_string())."\n\n"); }
+            if($debug) { 
+                $udfrom_str = (new UnixDay($udfrom))->simple_string();
+                print("DEBUG TIME PERIOD FROM=".($udfrom_str)." TO=".((new UnixDay($udto))->simple_string())."\n\n");
+            }
 
             $TYP->sum($udfrom, $udto, true /* get timed sum */, $debug);
             
             if($debug) {
                 $TYP->get_logs_callback(
-                    function ($label, $data) use ($udfrom) {
-                        print("DEBUG CATEGORY=$label FROM=".((new UnixDay($udfrom))->simple_string())."\n");
+                    function ($label, $data) use ($udfrom_str) {
+                        
+                        print("DEBUG CATEGORY=$label FROM=$udfrom_str\n");
+                        $row_prefix = self::_chart_esc("DEBUG.{$label}.{$udfrom_str}", "csv") . ",";
                         foreach($data as $row) {
+                            print($row_prefix);
                             foreach($row as $v) {
                                 print(self::_chart_esc($v, "csv").",");
                             }
@@ -297,13 +320,20 @@ class View {
             
             if($format == 'graph') {
                 $databyie .= ',' . implode(',', $TYP->get_gensums_corrected()) . ']';
-            } else {
+            } elseif($format == 'csv') {
                 $databytype .= ',' . implode(',', $TYP->get_gensums_corrected());
+            } elseif($format == 'data') {
+                $outdata['_INCOME']['values'][] = $TYP->get_gensums_corrected()['+'];
+                $outdata['_EXPENSE']['values'][] = $TYP->get_gensums_corrected()['-'];
             }
 
             $TYP->get_sum_callback(
-                function ($label, $typedata, $sum) use (&$databytype) {
-                    $databytype .= "," . $sum;
+                function ($label, $typedata, $sum) use (&$databytype, &$outdata, $format) {
+                    if($format == 'data') {
+                        $outdata[$label]['values'][] = $sum;
+                    } else {
+                        $databytype .= "," . $sum;
+                    }
                 }
             );
 
@@ -312,6 +342,7 @@ class View {
             }
         }
 
+        if($format == 'data') { return $outdata; }
         return array($databytype, $databyie, $colors);
     }
 
