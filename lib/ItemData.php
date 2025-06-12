@@ -225,6 +225,7 @@ class ItemData {
 
     public function delete($DB) {
         self::delete_item($DB, $this->id);
+        $this->id = -1;
     }
 
     /** Stores a NEW record in the database */
@@ -287,6 +288,7 @@ class ItemData {
             $values,
             1
         );
+        $this->id = $DB->last_insert_id();
     }
     
     /** Toggle the checked status of the item */
