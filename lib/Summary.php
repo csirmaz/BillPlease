@@ -100,28 +100,60 @@ EOQ
          
          foreach(explode(',', $column) as $sumacc){ // split items
   
-            if($sumacc == '#'){ // sums
+            if($sumacc == '#'){ // sums -- DISABLED as meaningless unless everything is imported
+            if(False) {
 
-               $allsum = $DB->querysingle('select sum(value) from costs where accountfrom = \'\' and unixday <= ?', array($nowday));
-               // Tails of long entries
-               $outstanding = $DB->querysingle(
-                  'select sum((value*1.0)*(unixdayto-1-?)/timespan) from costs where accountfrom = \'\' and unixday <= ? and unixdayto > (?+1)',
-                  array($nowday,$nowday,$nowday)
-               );
+               $allsum = self::get_all_sum($DB, $nowday);               
+               $outstanding = self::get_tail_sum($DB, $nowday);
                
                $SummaryColumn .= $SLD->fuse('summary_sums', array(
-                  '$timedsum' => printsum(($allsum - $outstanding) / 100),
-                  '$sum' => printsum($allsum / 100) // Index: costs_accfr_ud_|_v
+                  '$timedsum' => printsum($allsum - $outstanding),
+                  '$sum' => printsum($allsum) // Index: costs_accfr_ud_|_v
                ));
+               
+            }
+            } elseif(substr($sumacc, 0, 1) == '(') { // sums of accounts
+            
+                $part = 0;
+                for($i=1; $i<strlen($sumacc); $i++){
+                    $acc = substr($sumacc, $i, 1);
+                    $part += self::get_account_sum($DB, $acc, $nowday) * self::get_account_rate($DB, $acc);
+                }
+            
+                $allsum = self::get_all_sum($DB, $nowday);
+            
+                $SummaryColumn .= $SLD->fuse('summary_multiacc', array(
+                    'names' => substr($sumacc, 1),
+                    '$sum' => printsum($part),
+                    'ratio' => floor($part/$allsum*100+.5)
+                ));
                
             } else { // a specific account
             
-               $thisacc = substr($sumacc, 0, 1);
+                // TODO adjust for rates
+               $acc = substr($sumacc, 0, 1);
+               
+                // DB index: costs_accto_ud_|_v
+                // DB index: costs_accfr_ud_|_v
+                $sum = self::get_account_sum($DB, $acc, $nowday);
+                
+                $checkedsum = '';
+                if(substr($sumacc, 1, 1) == '+'){
+                    // Index: costs_accto_c
+                    $checked_to = $DB->querysingle('select sum(value) from costs where accountto = ? and checked>0', array($acc));
+                    // Index: costs_accfrom_c
+                    $checked_from = $DB->querysingle('select sum(value) from costs where accountfrom = ? and checked>0', array($acc));
+                    $checkedsum .= $SLD->fuse('summary_account_checked', printsum(($checked_to-$checked_from)/100));
+                }
+                
+                if(substr($sumacc,1,1)=='%'){
+                    $checkedsum .= $SLD->fuse('summary_account_rate', printsum($sum * self::get_account_rate($DB, $acc)));
+                }
+
                $SummaryColumn .= $SLD->fuse('summary_account', array(
-                  'name' => $DB->querysingle('select shortname from accountnames where accounttofrom = ?', array($thisacc)),
-                  '$sum' => printsum($DB->accountsum($thisacc, $nowday)),
-                  '$checkedsum' => substr($sumacc, 1, 1) != '+' ? '' :
-                     $SLD->fuse('summary_account_checked', printsum($DB->accountsum_checked($thisacc)))
+                  'name' => $DB->querysingle('select shortname from accountnames where accounttofrom = ?', array($acc)),
+                  '$sum' => printsum($sum),
+                  '$checkedsum' => $checkedsum
                ));
             }
          }
