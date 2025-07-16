@@ -197,19 +197,13 @@ class ItemData {
         return [$this->uday->simple_string(), $this->name, $this->value, $this->ctype, $this->accountto . $this->accountfrom];
     }
 
-    public function get_checked() {
-        return $this->checked;
-    }
+    public function get_checked() { return $this->checked; }
 
-    public function get_value() {
-        // TODO rate
-        return $this->value;
-    }
+    public function get_value() { return $this->value; } // TODO rate
 
-    public function set_value($x) {
-        $this->value = $x;
-        return $this;
-    }
+    public function set_value($x) { $this->value = $x; return $this; }
+
+    public function set_account_to($a) { $this->accountto = $a; return $this; }
 
     public function realvalue() {
         // TODO rate
@@ -227,12 +221,15 @@ class ItemData {
         self::delete_item($DB, $this->id);
         $this->id = -1;
     }
+    
+    public function update($DB) { return $this->store($DB, True); }
 
     /** Stores a NEW record in the database */
-    public function store($DB) {
-        $placeholders = array();
-        $values = array();
-        $names = array(
+    public function store($DB, $do_update=False) {
+        $placeholders = [];
+        $values = [];
+        $updates = [];
+        $names = [
             'year',
             'month',
             'day',
@@ -248,7 +245,7 @@ class ItemData {
             'clong',
             'unixday',
             'unixdayto'
-        );
+        ];
         foreach($names as $n) {
             switch($n) {
                 case 'value':
@@ -281,14 +278,25 @@ class ItemData {
 
             $placeholders[] = '?';
             $values[] = $v;
+            $updates[] = $n . '=?';
         }
 
+        if($do_update) {
+            if((!isset($this->id)) || $this->id < 0) {
+                throw new Exception("Trying to update item without id");
+            }
+            $values[] = $this->id;
+            $DB->exec_assert_change('update costs set ' . implode(',', $updates) . ' where id = ?', $values, 1);
+            return $this;
+        }
+        
         $DB->exec_assert_change(
             'insert into costs (' . implode(',', $names) . ') values (' . implode(',', $placeholders) . ')',
             $values,
             1
         );
         $this->id = $DB->last_insert_id();
+        return $this;
     }
     
     /** Toggle the checked status of the item */
@@ -303,10 +311,6 @@ class ItemData {
         $this->business = ($this->business ? 0 : 1);
         return $this;
     }
-
-
-    public function set_account_to($a) { $this->accountto = $a; return $this; }
-
 
     /** Toggle the checked status of any item */
     // TODO Rewrite into object method to call before store()
