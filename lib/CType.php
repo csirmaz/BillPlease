@@ -47,7 +47,6 @@ class CType {
 
    /** Sum items per category.
     * If $timed is true, adjust the sum according to the timespan of the items.
-    * $dayfrom and $dayto are inclusive.
     */
    public function sum($dayfrom, $dayto, $timed=false, $debug=false) {
       // This keeps the ordering right!

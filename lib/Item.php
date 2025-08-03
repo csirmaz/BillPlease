@@ -169,7 +169,7 @@ class Item extends ItemData {
     
    /** Calculate sum for a time period (helper).
     * If $timed is true, adjust the sum according to the timespan of the items.
-    * $dayfrom and $dayto are inclusive.
+    * Inclusive of both $dayfrom and $dayto (note unixdayto=unixday+1 for daily items).
     */
     public static function period_sum($DB, $dayfrom, $dayto, $timed, $debug, $callback) {
 

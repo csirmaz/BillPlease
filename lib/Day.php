@@ -60,6 +60,7 @@ EOQ
     }
 
     public function get_timedsum() {
+        // Get "timed" sum for the current day
         if(!isset($this->timedsum)) {
             // Index: costs_acfr_ud_udt_v_s
             // {TIMEDVALUE}*
@@ -83,12 +84,13 @@ EOQ
     }
     
     public function get_timed_weekly_sum() {
+        // Get the "timed" sum for the previous 7 days
         if(!isset($this->timed_weekly_sum)) {
             $sum = 0;
             Item::period_sum(
                 $this->DB, 
-                $this->uday->ud()-6, // dayfrom
-                $this->uday->ud(), // dayto
+                $this->uday->ud() - 6, // dayfrom (inclusive)
+                $this->uday->ud(), // dayto (inclusive)
                 TRUE, // timed
                 FALSE, // debug
                 function($item, $v, $debug, $log, $log_header) use (&$sum) {
@@ -161,7 +163,8 @@ EOQ
             Application::get()->solder()->fuse(
                 'day_footer',
                 array(
-                    '$timed_weekly_sum' => printsum($this->get_timed_weekly_sum()), // get_timedsum() unused
+                    '$timed_weekly_sum' => printsum($this->get_timed_weekly_sum()),
+                    '$timed_daily_sum' => printsum($this->get_timedsum()),
                     '$sum' => printsum($this->get_sum()),
                     'ud' => $this->uday->ud()
                 )
