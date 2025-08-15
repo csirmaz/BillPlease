@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2016-2025 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2013-2025 by Elod Csirmaz <https://www.epcsirmaz.co.uk/>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -101,6 +101,9 @@ class View {
         $out = '';
         $nowday = $APP->nowday()->ud();
         
+        $now_day_of_month = $APP->nowday()->day();
+        if($now_day_of_month == 31) { $now_day_of_month = 30; }
+        
         if($fromday == 0) {
             $fromday = $DB->querysingle('select min(unixday) from costs') + 0;
         }
@@ -110,7 +113,7 @@ class View {
             $timedsum = $sum - Summary::get_tail_sum($DB, $fromday-1);
         }
 
-        for($d = $fromday; $d <= $nowday; $d++) {
+        for($d = $fromday; $d <= $nowday; $d++) { // $d = unixday counter
             $Day = Day::from_unixday($DB, $d);
             $sum += $Day->get_sum();
             $timedsum += $Day->get_timedsum();
@@ -132,7 +135,7 @@ class View {
             # annotation (not timed)
             $an2title = 'undefined';
             $an2text = 'undefined';
-            if($d >= $nowday - 70 && (($nowday - $d) % 30) == 0) {
+            if($d >= $nowday - 70 && ($Day->get_uday()->day() == $now_day_of_month)) {
                 $an2title = '"Sum"';
                 $an2text = '"' . $sum_out . '"';
             }
@@ -156,6 +159,7 @@ class View {
 
         print $SLD->fuse('chart_timeline_page', array('$data' => $out, 'title' => Texts::systitle()));
     }
+
 
     public static function chart_bar($APP) {
         $DB = $APP->db();
@@ -190,160 +194,169 @@ class View {
         );
     }
     
-    // CSV output from monthly outgoings by type
-    public static function chart_csv($APP) {
-        $DB = $APP->db();
-        $nowday = $APP->nowday()->ud();
-        $step = 30;        
-
-        $data = self::_barchart(
-            $APP,
-            ($DB->querysingle('select min(unixday) from costs') + 0), // dayfrom
-            $step,
-            $nowday,
-            'csv',
-            FALSE
-        );
-
-        header("Content-type: text/csv");
-        header("Content-Disposition: attachment; filename=month-by-type.csv");
-        header("Pragma: no-cache");
-        header("Expires: 0");
-        print $data[0];
-        # print $APP->solder()->fuse('chart_csv_page', array('title' => Texts::systitle(), '$data' => $data[0]));
-    }
     
     private static function _chart_esc($s, $format) {
         return Solder::escape($s, $format == 'graph' ? 'js' : 'csv');
     }
 
+
     private static function _barchart(
         $APP,
-        $dayfrom, // not object | "12months" | "24months"
+        $dayfrom_val, // unixday value (scalar) | "12months" | "24months"
         $step, // in days. 30 to use months
-        $dayto,
-        $format, // "graph" | "csv" | "data"
+        $dayto_val, // unixday value (scalar)
+        $format, // "graph" | "data"
         $debug=FALSE // bool
     ) {
         $DB = $APP->db();
         $TYP = new CType($DB);
+        $LOGS = []; // for debugging
         
         $colors = array();
         $databytype = ''; // by-type graph or csv (inlcudes income-expense if $format!='graph')
         $databyie = ''; // income-expense graph or csv (used only if $format=='graph')
         $outdata = [ // used if $format=='data'
-            '_INCOME' => ['name'=>'Income','color'=>'#000','values'=>[]],
-            '_EXPENSE' => ['name'=>'Income','color'=>'#000','values'=>[]]
+            '_INCOME' => ['name'=>'Income','color'=>'#000','values'=>[]],  // timed
+            '_EXPENSE' => ['name'=>'Expense','color'=>'#000','values'=>[]], // timed
+            '_RAW_INCOME' => ['name'=>'Raw Income','color'=>'#000','values'=>[]],  // not timed
+            '_RAW_EXPENSE' => ['name'=>'Raw Expense','color'=>'#000','values'=>[]],  // not timed
+            '_DATES' => ['values'=>[]],
         ];
         
         // Data header
-        $databyie = ($format == 'graph' ? "['Date','Income','Expense']" : '');
-        $databytype = ($format == 'graph' ? "['Date'" : '"Date","Income","Expense"');
+        
+        if($format == 'graph') {
+            $databyie = "['Date','Income','Expense']";
+            $databytype = "['Date'";
+        }
+        // Add info on all types
         $TYP->get_type_callback(
             function ($label, $typedata) use (&$colors, &$databytype, &$outdata, $format) {
-                $databytype .= ',"' . self::_chart_esc($typedata['name'], $format) . '"';
-                $colors[] = "'" . $typedata['chartcolor'] . "'";
-                $outdata[$label] = [
-                    'name' => $typedata['name'],
-                    'color' => $typedata['chartcolor'],
-                    'values' => []
-                ];
+                if($format == 'graph') {
+                    $colors[] = "'" . $typedata['chartcolor'] . "'";
+                    $databytype .= ',"' . self::_chart_esc($typedata['name'], $format) . '"';
+                } elseif($format == 'data') {
+                    $outdata[$label] = [
+                        'name' => $typedata['name'],
+                        'color' => $typedata['chartcolor'],
+                        'values' => []
+                    ];
+                }
             }
         );
-        $databytype .= ($format == 'graph' ? "]" : '');
-
-        if($step != 30) {
-            $dayfrom = $dayto - floor(($dayto - $dayfrom) / $step) * $step;
+        if($format == 'graph') {
+            $databytype .= "]";
         }
-        if($dayfrom === '24months') {
-            $dayfrom = new UnixDay($dayto);
+
+        // Calculate from-to limits
+        
+        if($step != 30) { // round $dayfrom_val to $step
+            $dayfrom_val = $dayto_val - floor(($dayto_val - $dayfrom_val) / $step) * $step;
+        }
+        if($dayfrom_val === '24months') {
+            $dayfrom_obj = new UnixDay($dayto_val);
             for($i=0; $i<24; $i++) {
-                $dayfrom->sub_month();
+                $dayfrom_obj->sub_month();
             }
-        } elseif($dayfrom === '12months') {
-            $dayfrom = new UnixDay($dayto);
+        } elseif($dayfrom_val === '12months') {
+            $dayfrom_obj = new UnixDay($dayto_val);
             for($i=0; $i<12; $i++) {
-                $dayfrom->sub_month();
+                $dayfrom_obj->sub_month();
             }
         } else {
-            $dayfrom = new UnixDay($dayfrom);
+            $dayfrom_obj = new UnixDay($dayfrom_val);
         }
-        $dayto = new UnixDay($dayto);
+        $dayto_obj = new UnixDay($dayto_val);
         if($step == 30) { // Simulate pcm steps
-            $dayfrom->set_day($dayto->day());
+            $dayfrom_obj->set_day($dayto_obj->day());
         }
 
-        // Loop through time periods
-        while($dayfrom->lt($dayto)) {
+        $LOGS[] = "OVERALL DAYFROM={$dayfrom_obj->simple_string()} DAYTO={$dayto_obj->simple_string()}";
+        $curday_obj = $dayfrom_obj->cloneme();
         
-            if($debug) { print("DEBUG TIME PERIOD BASE={$dayfrom->simple_string()} MAX={$dayto->simple_string()}\n"); }
-
-            $dt = $dayfrom->simple_string();
-            $dt = ($format == 'graph' ? ",\n['" . $dt . "'" : "\n\"" . $dt . '"');
-            if($format == 'graph') {
-                $databyie .= $dt;
-            }
-            $databytype .= $dt;
-
-            // Increase date
-            $udfrom = $dayfrom->ud() + 1;
-            if($step == 30) { // Simulate pcm steps
-                $dayfrom->add_month();
-            } else {
-                $dayfrom->add($step);
-            }
-            $udto = $dayfrom->ud();
+        // Loop through time periods
+        
+        while($curday_obj->lt($dayto_obj)) {
             
-            if($debug) { 
-                $udfrom_str = (new UnixDay($udfrom))->simple_string();
-                print("DEBUG TIME PERIOD FROM=".($udfrom_str)." TO=".((new UnixDay($udto))->simple_string())."\n\n");
+            $LOGS[] = "LOOP: CURDAY={$curday_obj->simple_string()}";
+
+            if($format == 'graph') {
+                $curday_str = $curday_obj->simple_string();
+                $curday_format = ",\n['" . $curday_str . "'";
+                $databyie .= $curday_format;
+                $databytype .= $curday_format;
             }
 
-            $TYP->sum($udfrom, $udto, true /* get timed sum */, $debug);
+            // Increase date & get limits for current period
+
+            $cur_from_val = $curday_obj->ud() + 1;
+            if($step == 30) { // Simulate pcm steps
+                $curday_obj->add_month();
+            } else {
+                $curday_obj->add($step);
+            }
+            $cur_to_val = $curday_obj->ud();
+            
+            $cur_from_str = (new UnixDay($cur_from_val))->simple_string();
+            $cur_to_str = (new UnixDay($cur_to_val))->simple_string();
+
+            // Calculate sums
+            $TYP->sum($cur_from_val, $cur_to_val, true /* get timed sum */, $debug);
             
             if($debug) {
                 $TYP->get_logs_callback(
-                    function ($label, $data) use ($udfrom_str) {
-                        
-                        print("DEBUG CATEGORY=$label FROM=$udfrom_str\n");
-                        $row_prefix = self::_chart_esc("DEBUG.{$label}.{$udfrom_str}", "csv") . ",";
+                    function ($label, $data) use (&$LOGS) {
+                        $LOGS[] = "  TYP_SUM CATEGORY=$label";
                         foreach($data as $row) {
-                            print($row_prefix);
+                            $row_log = '';
                             foreach($row as $v) {
-                                print(self::_chart_esc($v, "csv").",");
+                                $row_log .= self::_chart_esc($v, "csv").",";
                             }
-                            print("\n");
+                            $LOGS[] = $row_log;
                         }
                     }
                 );
             }
             
+            // Store income-expense data
+            
             if($format == 'graph') {
                 $databyie .= ',' . implode(',', $TYP->get_gensums_corrected()) . ']';
-            } elseif($format == 'csv') {
-                $databytype .= ',' . implode(',', $TYP->get_gensums_corrected());
             } elseif($format == 'data') {
                 $outdata['_INCOME']['values'][] = $TYP->get_gensums_corrected()['+'];
                 $outdata['_EXPENSE']['values'][] = $TYP->get_gensums_corrected()['-'];
+                $outdata['_DATES']['values'][] = "$cur_from_str - $cur_to_str";
             }
 
+            // Store per-type data
+            
             $TYP->get_sum_callback(
                 function ($label, $typedata, $sum) use (&$databytype, &$outdata, $format) {
                     if($format == 'data') {
                         $outdata[$label]['values'][] = $sum;
-                    } else {
+                    } elseif($format == 'graph') {
                         $databytype .= "," . $sum;
                     }
                 }
             );
+            
+            if($format == 'data') {
+                // Also calculate non-timed sums
+                $TYP->sum($cur_from_val, $cur_to_val, false /* get non-timed sum */, $debug);
+                // Store income-expense data
+                $outdata['_RAW_INCOME']['values'][] = $TYP->get_gensums_corrected()['+'];
+                $outdata['_RAW_EXPENSE']['values'][] = $TYP->get_gensums_corrected()['-'];
+            }
 
             if($format == 'graph') {
                 $databytype .= "]";
             }
         }
+        
+        //TODO return LOGS
 
         if($format == 'data') { return $outdata; }
-        return array($databytype, $databyie, $colors);
+        return [$databytype, $databyie, $colors];
     }
 
 }
