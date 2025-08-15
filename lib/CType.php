@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2019-2025 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2013-2025 by Elod Csirmaz <https://www.epcsirmaz.co.uk/>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 class CType {
 
    private $DB;
-   private $types = array(); /*< label => array(name=>, chartcolor=>, chartorder=>) */
+   private $types = array(); /*< label => [name=>, chartcolor=>, chartorder=>] */
    private $sums = array(); /*< label => sum */
    private $gensums = array(); /*< '+'/'-' => sum */
    private $logs = array();
@@ -49,6 +49,7 @@ class CType {
     * If $timed is true, adjust the sum according to the timespan of the items.
     */
    public function sum($dayfrom, $dayto, $timed=false, $debug=false) {
+      // Reset internal state
       // This keeps the ordering right!
       foreach ($this->types as $sign => $val) {
          $this->sums[$sign] = 0;
