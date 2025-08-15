@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2013-2025 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2013-2025 by Elod Csirmaz <https://www.epcsirmaz.co.uk/>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 /** This class represents a day as a datetime that can be manipulated using different protocols */
 
 class UnixDay {
-   private $myud;
+   private $myud;  // unixday (the number of days since the unix epoch)
    private $myyear;
    private $mymonth; /* 1..12 */
    private $myday;
@@ -45,16 +45,24 @@ class UnixDay {
    public static function from_ut($ut) {
       return new self(floor($ut / 60 / 60 / 24));
    }
+   
+   public function cloneme() {
+      return new self($this->myud);
+   }
 
+   /** Return the unixday value as a number */
    public function ud() {
       return $this->myud;
    }
+   
    public function year() {
       return $this->myyear;
    }
+   
    public function month() {
       return $this->mymonth;
    }
+   
    public function day() {
       return $this->myday;
    }
@@ -93,15 +101,23 @@ class UnixDay {
    }
 
    public function eq($unixday) {
-      return ($this->myud = $unixday->ud());
+      return ($this->myud == $unixday->ud());
    }
 
    public function lt($unixday) {
       return ($this->myud < $unixday->ud());
    }
 
+   public function lte($unixday) {
+      return ($this->myud <= $unixday->ud());
+   }
+
    public function gt($unixday) {
       return ($this->myud > $unixday->ud());
+   }
+
+   public function gte($unixday) {
+      return ($this->myud >= $unixday->ud());
    }
 
    public function simple_string() {
