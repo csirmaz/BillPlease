@@ -29,12 +29,14 @@ class Texts {
    private static $timespantexts = array( //
         1 => 'daily*', //
         7 => 'weekly*', //
-        15 => 'biweekly*', //
-        22 => 'triweekly*', //
+        15 => '2weekly*', //
+        22 => '3weekly*', //
         30 => 'monthly*', //
         31 => 'monthly', //
-        91 => 'quarterly*', //
-        182 => 'half a year*', //
+        45 => '6weekly*', //
+        61 => '2monthly*', //
+        91 => '3monthly*', //
+        182 => '6monthly*', //
         365 => 'yearly*',
         -365 => 'future year*'
    );
