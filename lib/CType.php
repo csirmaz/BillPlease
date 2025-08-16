@@ -23,10 +23,11 @@
 class CType {
 
    private $DB;
-   private $types = array(); /*< label => [name=>, chartcolor=>, chartorder=>] */
-   private $sums = array(); /*< label => sum */
-   private $gensums = array(); /*< '+'/'-' => sum */
-   private $logs = array();
+   private $types = []; /*< label => [name=>, chartcolor=>, chartorder=>] */
+   private $sums = []; /*< label => sum */
+   private $gensums = []; /*< '+'/'-' => sum */
+   private $logs = []; // for debugging
+   public $item_ids = []; // for debugging
 
    public function __construct($DB) {
 
@@ -54,8 +55,9 @@ class CType {
       foreach ($this->types as $sign => $val) {
          $this->sums[$sign] = 0;
       }
-      $this->gensums = array('+' => 0, '-' => 0);
+      $this->gensums = ['+' => 0, '-' => 0, 'T' => 0];  // '+'=income '-'=expense 'T'=total
       $this->logs = [];
+      $this->item_ids = [];
       
       Item::period_sum($this->DB, $dayfrom, $dayto, $timed, $debug,
          function($item, $v, $debug, $log, $log_header) {
@@ -68,6 +70,8 @@ class CType {
             }
 
             if($item->get_ctype() != 'EXC') { // exclude this type
+               if($debug) { $this->item_ids[] = $item->id; }
+               $this->gensums['T'] += $v;
                if ($v < 0 && $item->get_ctype() == 'X') { // income (ONLY TYPE X)
                   $this->gensums['+'] -= $v;
                } else {
@@ -80,6 +84,7 @@ class CType {
 
       if($debug) {
          // Add sums
+         /*
          foreach($this->sums as $label => $sum) {
             if(isset($this->logs[$label])) {
                $this->logs[$label][] = ["{$sum}"];
@@ -87,6 +92,12 @@ class CType {
                $this->logs[$label] = [$log_header, ["{$sum}"]];
             }
          }
+         */
+      }
+      
+      $saving = $this->gensums['-'] - $this->gensums['+'];
+      if(floor($saving*100+.5) != floor($this->gensums['T']*100+.5)) {
+         throw new Exception("CType::sum error for gensum total: inc={$this->gensums['+']} exp={$this->gensums['-']} exp-inc={$saving} total={$this->gensums['T']}"); 
       }
    }
 
@@ -129,10 +140,11 @@ class CType {
 
    /** Retrun income/expense sums */
    public function get_gensums_corrected() {
-      return array(
-         '+' => ($this->gensums['+']), // income
-         '-' => ($this->gensums['-'])  // expense
-      );
+      return [
+         '+' => $this->gensums['+'], // income
+         '-' => $this->gensums['-'], // expense
+         'T' => $this->gensums['T']  // total = expense - income
+      ];
    }
 
 }
