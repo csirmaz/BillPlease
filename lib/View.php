@@ -321,7 +321,7 @@ class View {
             // Store income-expense data
             
             if($format == 'graph') {
-                $databyie .= ',' . implode(',', $TYP->get_gensums_corrected()) . ']';
+                $databyie .= ',' . $TYP->get_gensums_corrected()['+'] . ',' . $TYP->get_gensums_corrected()['-'] . ']';
             } elseif($format == 'data') {
                 $outdata['_INCOME']['values'][] = $TYP->get_gensums_corrected()['+'];
                 $outdata['_EXPENSE']['values'][] = $TYP->get_gensums_corrected()['-'];
