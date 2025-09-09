@@ -2,7 +2,7 @@
 /*
    This file is part of BillPlease, a single-user web app that keeps
    track of personal expenses.
-   BillPlease is Copyright 2016-2025 by Elod Csirmaz <http://www.github.com/csirmaz>
+   BillPlease is Copyright 2013-2025 by Elod Csirmaz <https://www.epcsirmaz.co.uk/>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -143,11 +143,18 @@ class ItemData {
         $this->name = $x;
         return $this;
     }
+    
+    /** Return the start UnixDay object */
+    public function get_ud() {
+        return $this->uday;
+    }
 
+    /** Return the start unixday value */
     public function get_unixday() {
         return $this->uday->ud();
     }
 
+    /** Return the "to" (end) unixday value */
     public function get_unixdayto() {
         return $this->udayto->ud();
     }
@@ -205,9 +212,10 @@ class ItemData {
 
     public function set_account_to($a) { $this->accountto = $a; return $this; }
 
+    /** The raw (non-timed) value that is 0 if this is a transfer */
     public function realvalue() {
         // TODO rate
-        if($this->accountfrom) {
+        if($this->accountfrom || $this->istransfer) {
             return 0;
         }
         return $this->value;
