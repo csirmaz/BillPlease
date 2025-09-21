@@ -8,10 +8,10 @@
    references, character escaping, references to other templates and
    internationalisation.
    
-   Solder is Copyright (C) 2014, 2015, 2016 Elod Csirmaz
-   <http://www.epcsirmaz.com/> <https://github.com/csirmaz>.
+   Solder is Copyright (C) 2025 Elod Csirmaz
+   <http://www.epcsirmaz.co.uk/>.
 
-   Version 20
+   Version 21
 
    The MIT License (MIT)
 
