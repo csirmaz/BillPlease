@@ -45,6 +45,7 @@ require $LIBPATH . '/Html.php';
 require $LIBPATH . '/CType.php';
 require $LIBPATH . '/FirstChecked.php';
 require $LIBPATH . '/Summary.php';
+require $LIBPATH . '/AutoEntries.php';
 
 require $PATH . '/config.php';
 
