@@ -111,22 +111,34 @@ class CType {
    }
 
    /** Call callback($label, $typedata, $sum) for each type (run sum() before calling this). */
-   public function get_sum_callback($callback) {
-      foreach ($this->types as $label => $data) {
-         if ($data['chartorder'] == 0) {
-            continue;
-         }
-         $callback($label, $data, $this->sums[$label]);
-      }
+   public function get_sum_callback($callback, $type_to_move='') {
+      $this->get_type_callback($callback, $type_to_move, TRUE);
    }
 
-   /** Call callback($label, $typedata) for each type */
-   public function get_type_callback($callback) {
-      foreach ($this->types as $label => $data) {
-         if ($data['chartorder'] == 0) {
-            continue;
+   /** Call callback($label, $typedata) for each type.
+    * If $type_to_move is not an empty string, move the given type to be the first one
+   */
+   public function get_type_callback($callback, $type_to_move='', $get_sums=FALSE) {
+      if($type_to_move == '') {
+         foreach ($this->types as $label => $data) {
+            if ($data['chartorder'] == 0) { continue; }
+            if($get_sums) { $callback($label, $data, $this->sums[$label]); } else { $callback($label, $data); }
          }
-         $callback($label, $data);
+         return;
+      }
+      
+      $callme = FALSE;
+      foreach ($this->types as $label => $data) {
+         if ($data['chartorder'] == 0) { continue; }
+         if ($label == $type_to_move || $callme) {
+            if($get_sums) { $callback($label, $data, $this->sums[$label]); } else { $callback($label, $data); }
+            $callme = TRUE;
+         }
+      }
+      foreach ($this->types as $label => $data) {
+         if ($data['chartorder'] == 0) { continue; }
+         if ($label == $type_to_move) { break; }
+         if($get_sums) { $callback($label, $data, $this->sums[$label]); } else { $callback($label, $data); }
       }
    }
    

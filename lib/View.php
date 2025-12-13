@@ -161,7 +161,7 @@ class View {
     }
 
 
-    public static function chart_bar($APP) {
+    public static function chart_bar($APP, $type_to_move) {
         $DB = $APP->db();
         $nowday = $APP->nowday()->ud();
         $step = 30;
@@ -172,6 +172,7 @@ class View {
             $step,
             $nowday,
             'graph',
+            $type_to_move,
             $APP->debug()
         );
         
@@ -189,7 +190,8 @@ class View {
                 '$incomeexpense' => $data[1],
                 '$colors' => implode(',', $data[2]),
                 'intv' => ($step == 30 ? 'monthly' : $step . '-day'),
-                '$extracontent' => $extracontent
+                '$extracontent' => $extracontent,
+                '$controls' => $data[3]
             )
         );
     }
@@ -206,10 +208,12 @@ class View {
         $step, // in days. 30 to use months
         $dayto_val, // unixday value (scalar)
         $format, // "graph" | "data"
+        $type_to_move='',
         $debug=FALSE // bool
     ) {
         $DB = $APP->db();
         $TYP = new CType($DB);
+        $SOLDER = $APP->solder();
         $LOGS = []; // for debugging
         
         $colors = array();
@@ -220,8 +224,9 @@ class View {
             '_EXPENSE' => ['name'=>'Expense','color'=>'#000','values'=>[]], // timed
             '_RAW_INCOME' => ['name'=>'Raw Income','color'=>'#000','values'=>[]],  // not timed
             '_RAW_EXPENSE' => ['name'=>'Raw Expense','color'=>'#000','values'=>[]],  // not timed
-            '_DATES' => ['values'=>[]],
+            '_DATES' => ['values'=>[]]
         ];
+        $controls = "Change barchart order: ".$SOLDER->fuse('chart_bar_ctrl', ['label'=>'', 'name'=>'NONE']).' ';
         
         // Data header
         
@@ -231,7 +236,7 @@ class View {
         }
         // Add info on all types
         $TYP->get_type_callback(
-            function ($label, $typedata) use (&$colors, &$databytype, &$outdata, $format) {
+            function ($label, $typedata) use (&$colors, &$databytype, &$outdata, &$controls, $SOLDER, $format) {
                 if($format == 'graph') {
                     $colors[] = "'" . $typedata['chartcolor'] . "'";
                     $databytype .= ',"' . self::_chart_esc($typedata['name'], $format) . '"';
@@ -242,7 +247,10 @@ class View {
                         'values' => []
                     ];
                 }
-            }
+                
+                $controls .= $SOLDER->fuse('chart_bar_ctrl', ['label'=>$label, 'name'=>$typedata['name']]).' ';
+            },
+            $type_to_move
         );
         if($format == 'graph') {
             $databytype .= "]";
@@ -337,7 +345,8 @@ class View {
                     } elseif($format == 'graph') {
                         $databytype .= "," . $sum;
                     }
-                }
+                },
+                $type_to_move
             );
             
             if($format == 'data') {
@@ -356,7 +365,7 @@ class View {
         //TODO return LOGS
 
         if($format == 'data') { return $outdata; }
-        return [$databytype, $databyie, $colors];
+        return [$databytype, $databyie, $colors, $controls];
     }
 
 }
