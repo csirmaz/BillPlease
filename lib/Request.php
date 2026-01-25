@@ -46,11 +46,11 @@ class Request {
       return $default;
    }
 
-   public static function get_value($key, $noexception=false) {
+   public static function get_value($key, $noexception=false, $default='') {
       if (!isset($_POST[$key])) {
          if (!isset($_GET[$key])) {
             if(!$noexception){ throw new Exception("Missing data '$key'"); }
-            return '';
+            return $default;
          }
          return $_GET[$key];
       }

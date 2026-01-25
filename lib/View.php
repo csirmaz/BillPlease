@@ -161,24 +161,25 @@ class View {
     }
 
 
-    public static function chart_bar($APP, $type_to_move) {
+    public static function chart_bar($APP, $type_to_move, $smoothing_sigma) {
         $DB = $APP->db();
         $nowday = $APP->nowday()->ud();
         $step = 30;
-
+        
         $data = self::_barchart(
             $APP,
-            '24months', // dayfrom ($DB->querysingle('select min(unixday) from costs') + 0),
+            '24months', // org: dayfrom ($DB->querysingle('select min(unixday) from costs') + 0),
             $step,
             $nowday,
             'graph',
             $type_to_move,
+            $smoothing_sigma,
             $APP->debug()
         );
         
         $extracontent = '';
         if(function_exists('\BillPleaseExternal\chart_bar_hook')) {
-            $raw_month_data = self::_barchart($APP, '12months', 30, $nowday, 'data');
+            $raw_month_data = self::_barchart($APP, '24months', 30, $nowday, 'data', '' /*type to move*/, $smoothing_sigma);
             $extracontent = \BillPleaseExternal\chart_bar_hook($DB, $nowday, $raw_month_data);
         }
         
@@ -191,7 +192,8 @@ class View {
                 '$colors' => implode(',', $data[2]),
                 'intv' => ($step == 30 ? 'monthly' : $step . '-day'),
                 '$extracontent' => $extracontent,
-                '$controls' => $data[3]
+                '$controls' => $data[3],
+                'smoothing' => $smoothing_sigma
             )
         );
     }
@@ -209,6 +211,7 @@ class View {
         $dayto_val, // unixday value (scalar)
         $format, // "graph" | "data"
         $type_to_move='',
+        $smoothing_sigma=0,
         $debug=FALSE // bool
     ) {
         $DB = $APP->db();
@@ -225,20 +228,20 @@ class View {
             '_DATES' => ['values'=>[]],
             '_DATESTR' => ['values'=>[]]
         ];
-        $controls = "Change barchart order: ".$SOLDER->fuse('chart_bar_ctrl', ['label'=>'', 'name'=>'NONE']).' ';
+        $controls = "Change barchart order: ".$SOLDER->fuse('chart_bar_ctrl', ['label'=>'', 'name'=>'NONE', 'smoothing'=>$smoothing_sigma]).' ';
         
         // Data header
         
         // Add info on all types
         $TYP->get_type_callback(
-            function ($label, $typedata) use (&$labellist, &$outdata, &$controls, $SOLDER) {
+            function ($label, $typedata) use (&$labellist, &$outdata, &$controls, $SOLDER, $smoothing_sigma) {
                 $labellist[] = $label;
                 $outdata[$label] = [
                     'name' => $typedata['name'],
                     'color' => $typedata['chartcolor'],
                     'values' => []
                 ];                
-                $controls .= $SOLDER->fuse('chart_bar_ctrl', ['label'=>$label, 'name'=>$typedata['name']]).' ';
+                $controls .= $SOLDER->fuse('chart_bar_ctrl', ['label'=>$label, 'name'=>$typedata['name'], 'smoothing'=>$smoothing_sigma]).' ';
             },
             $type_to_move
         );
@@ -333,6 +336,23 @@ class View {
 
         } // end while date loop
         
+        // Optional smoothing
+        if($smoothing_sigma > 0) {
+            foreach(array_merge($labellist, ['_INCOME', '_EXPENSE']) as $label) {
+                for($i=0; $i<count($outdata['_DATESTR']['values']); $i++) {
+                    $sum_weights = 0;
+                    $sum_values = 0;
+                    for($j=0; $j<count($outdata['_DATESTR']['values']); $j++) {
+                        $x = ($j - $i);
+                        $weight = 1/exp($x*$x/(2*$smoothing_sigma*$smoothing_sigma));
+                        $sum_weights += $weight;
+                        $sum_values += $weight * $outdata[$label]['values'][$j];
+                    }
+                    $outdata[$label]['values'][$i] = $sum_values / $sum_weights;
+                }
+            }
+        }
+
         //TODO return LOGS
 
         if($format == 'data') { return $outdata; }
