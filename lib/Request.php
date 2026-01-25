@@ -39,7 +39,12 @@ class Request {
    public function get_action(){ return $this->action; }
    
    // Keys: listscroll
-   public function get_storage($key){ return $this->storage[$key]; }
+   public function get_storage($key, $default) { 
+      if(isset($this->storage[$key])) {
+         return $this->storage[$key]; 
+      }
+      return $default;
+   }
 
    public static function get_value($key, $noexception=false) {
       if (!isset($_POST[$key])) {
