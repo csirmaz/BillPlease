@@ -216,45 +216,32 @@ class View {
         $SOLDER = $APP->solder();
         $LOGS = []; // for debugging
         
-        $colors = array();
-        $databytype = ''; // by-type graph or csv (inlcudes income-expense if $format!='graph')
-        $databyie = ''; // income-expense graph or csv (used only if $format=='graph')
+        $labellist = [];
         $outdata = [ // used if $format=='data'
             '_INCOME' => ['name'=>'Income','color'=>'#000','values'=>[]],  // timed
             '_EXPENSE' => ['name'=>'Expense','color'=>'#000','values'=>[]], // timed
             '_RAW_INCOME' => ['name'=>'Raw Income','color'=>'#000','values'=>[]],  // not timed
             '_RAW_EXPENSE' => ['name'=>'Raw Expense','color'=>'#000','values'=>[]],  // not timed
-            '_DATES' => ['values'=>[]]
+            '_DATES' => ['values'=>[]],
+            '_DATESTR' => ['values'=>[]]
         ];
         $controls = "Change barchart order: ".$SOLDER->fuse('chart_bar_ctrl', ['label'=>'', 'name'=>'NONE']).' ';
         
         // Data header
         
-        if($format == 'graph') {
-            $databyie = "['Date','Income','Expense']";
-            $databytype = "['Date'";
-        }
         // Add info on all types
         $TYP->get_type_callback(
-            function ($label, $typedata) use (&$colors, &$databytype, &$outdata, &$controls, $SOLDER, $format) {
-                if($format == 'graph') {
-                    $colors[] = "'" . $typedata['chartcolor'] . "'";
-                    $databytype .= ',"' . self::_chart_esc($typedata['name'], $format) . '"';
-                } elseif($format == 'data') {
-                    $outdata[$label] = [
-                        'name' => $typedata['name'],
-                        'color' => $typedata['chartcolor'],
-                        'values' => []
-                    ];
-                }
-                
+            function ($label, $typedata) use (&$labellist, &$outdata, &$controls, $SOLDER) {
+                $labellist[] = $label;
+                $outdata[$label] = [
+                    'name' => $typedata['name'],
+                    'color' => $typedata['chartcolor'],
+                    'values' => []
+                ];                
                 $controls .= $SOLDER->fuse('chart_bar_ctrl', ['label'=>$label, 'name'=>$typedata['name']]).' ';
             },
             $type_to_move
         );
-        if($format == 'graph') {
-            $databytype .= "]";
-        }
 
         // Calculate from-to limits
         
@@ -288,15 +275,9 @@ class View {
             
             $LOGS[] = "LOOP: CURDAY={$curday_obj->simple_string()}";
 
-            if($format == 'graph') {
-                $curday_str = $curday_obj->simple_string();
-                $curday_format = ",\n['" . $curday_str . "'";
-                $databyie .= $curday_format;
-                $databytype .= $curday_format;
-            }
-
             // Increase date & get limits for current period
 
+            $curday_str = $curday_obj->simple_string();
             $cur_from_val = $curday_obj->ud() + 1;
             if($step == 30) { // Simulate pcm steps
                 $curday_obj->add_month();
@@ -328,23 +309,16 @@ class View {
             
             // Store income-expense data
             
-            if($format == 'graph') {
-                $databyie .= ',' . $TYP->get_gensums_corrected()['+'] . ',' . $TYP->get_gensums_corrected()['-'] . ']';
-            } elseif($format == 'data') {
-                $outdata['_INCOME']['values'][] = $TYP->get_gensums_corrected()['+'];
-                $outdata['_EXPENSE']['values'][] = $TYP->get_gensums_corrected()['-'];
-                $outdata['_DATES']['values'][] = "$cur_from_str - $cur_to_str";
-            }
+            $outdata['_INCOME']['values'][] = $TYP->get_gensums_corrected()['+'];
+            $outdata['_EXPENSE']['values'][] = $TYP->get_gensums_corrected()['-'];
+            $outdata['_DATES']['values'][] = "$cur_from_str - $cur_to_str";
+            $outdata['_DATESTR']['values'][] = $curday_str;
 
             // Store per-type data
             
             $TYP->get_sum_callback(
-                function ($label, $typedata, $sum) use (&$databytype, &$outdata, $format) {
-                    if($format == 'data') {
-                        $outdata[$label]['values'][] = $sum;
-                    } elseif($format == 'graph') {
-                        $databytype .= "," . $sum;
-                    }
+                function ($label, $typedata, $sum) use (&$outdata) {
+                    $outdata[$label]['values'][] = $sum;
                 },
                 $type_to_move
             );
@@ -357,14 +331,41 @@ class View {
                 $outdata['_RAW_EXPENSE']['values'][] = $TYP->get_gensums_corrected()['-'];
             }
 
-            if($format == 'graph') {
-                $databytype .= "]";
-            }
-        }
+        } // end while date loop
         
         //TODO return LOGS
 
         if($format == 'data') { return $outdata; }
+
+        // $format == 'graph'
+
+        $databytype = ''; // by-type graph or csv (inlcudes income-expense if $format!='graph')
+        $databyie = ''; // income-expense graph or csv (used only if $format=='graph')
+        $databyie = "['Date','Income','Expense']";
+        $databytype = "['Date'";
+        $colors = [];
+
+        // Header
+        foreach($labellist as $label) {
+            $colors[] = "'" . $outdata[$label]['color'] . "'";
+            $databytype .= ',"' . self::_chart_esc($outdata[$label]['name'], 'graph') . '"';
+        }
+        $databytype .= "]";
+        
+        // Data
+        for($i=0; $i<count($outdata['_DATESTR']['values']); $i++) {
+            $curday_str = $outdata['_DATESTR']['values'][$i]; // $curday_obj->simple_string();
+            $curday_format = ",\n['" . $curday_str . "'";
+            $databyie .= $curday_format;
+            $databytype .= $curday_format;
+
+            $databyie .= ',' . $outdata['_INCOME']['values'][$i] . ',' . $outdata['_EXPENSE']['values'][$i] . ']';
+            foreach($labellist as $label) {
+                $databytype .= "," . $outdata[$label]['values'][$i];
+            }
+            $databytype .= "]";
+        }
+        
         return [$databytype, $databyie, $colors, $controls];
     }
 
