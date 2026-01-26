@@ -180,7 +180,7 @@ class View {
         $extracontent = '';
         if(function_exists('\BillPleaseExternal\chart_bar_hook')) {
             $raw_month_data = self::_barchart($APP, '24months', 30, $nowday, 'data', '' /*type to move*/, $smoothing_sigma);
-            $extracontent = \BillPleaseExternal\chart_bar_hook($DB, $nowday, $raw_month_data);
+            $extracontent = \BillPleaseExternal\chart_bar_hook($DB, $nowday, $raw_month_data, $smoothing_sigma);
         }
         
         print $APP->solder()->fuse(
@@ -326,30 +326,30 @@ class View {
                 $type_to_move
             );
             
-            if($format == 'data') {
-                // Also calculate non-timed sums
-                $TYP->sum($cur_from_val, $cur_to_val, false /* get non-timed sum */, $debug);
-                // Store income-expense data
-                $outdata['_RAW_INCOME']['values'][] = $TYP->get_gensums_corrected()['+'];
-                $outdata['_RAW_EXPENSE']['values'][] = $TYP->get_gensums_corrected()['-'];
-            }
+            // Also calculate non-timed sums
+            $TYP->sum($cur_from_val, $cur_to_val, false /* get non-timed sum */, $debug);
+            // Store income-expense data
+            $outdata['_RAW_INCOME']['values'][] = $TYP->get_gensums_corrected()['+'];
+            $outdata['_RAW_EXPENSE']['values'][] = $TYP->get_gensums_corrected()['-'];
 
         } // end while date loop
         
         // Optional smoothing
         if($smoothing_sigma > 0) {
-            foreach(array_merge($labellist, ['_INCOME', '_EXPENSE']) as $label) {
+            foreach(array_merge($labellist, ['_INCOME', '_EXPENSE', '_RAW_INCOME', '_RAW_EXPENSE']) as $label) {
+                $new_vals = [];
                 for($i=0; $i<count($outdata['_DATESTR']['values']); $i++) {
                     $sum_weights = 0;
                     $sum_values = 0;
                     for($j=0; $j<count($outdata['_DATESTR']['values']); $j++) {
-                        $x = ($j - $i);
-                        $weight = 1/exp($x*$x/(2*$smoothing_sigma*$smoothing_sigma));
+                        $x = (float)($j - $i);
+                        $weight = 1./exp($x*$x/(2.*$smoothing_sigma*$smoothing_sigma));
                         $sum_weights += $weight;
                         $sum_values += $weight * $outdata[$label]['values'][$j];
                     }
-                    $outdata[$label]['values'][$i] = $sum_values / $sum_weights;
+                    $new_vals[$i] = $sum_values / $sum_weights;
                 }
+                $outdata[$label]['values'] = $new_vals;
             }
         }
 
