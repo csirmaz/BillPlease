@@ -173,6 +173,7 @@ class Item extends ItemData {
      */
      public static function period_sum($DB, $dayfrom, $dayto, $timed, $debug, $callback) {
 
+        // C.f. search
         if ($timed) {
             // {TIMEDVALUE}*
             // Note that here we compare a time period to a time period

@@ -72,7 +72,7 @@ class CType {
             if($item->get_ctype() != 'EXC') { // exclude this type
                if($debug) { $this->item_ids[] = $item->id; }
                $this->gensums['T'] += $v;
-               if ($v < 0 && $item->get_ctype() == 'X') { // income (ONLY TYPE X)
+               if ($v < 0) {
                   $this->gensums['+'] -= $v;
                } else {
                   $this->gensums['-'] += $v;
