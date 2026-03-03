@@ -206,7 +206,7 @@ class View {
 
     private static function _barchart(
         $APP,
-        $dayfrom_val, // unixday value (scalar) | "12months" | "24months"
+        $dayfrom_val, // unixday value (scalar) | "12months" | "24months" | "48months"
         $step, // in days. 30 to use months
         $dayto_val, // unixday value (scalar)
         $format, // "graph" | "data"
@@ -259,6 +259,11 @@ class View {
         } elseif($dayfrom_val === '12months') {
             $dayfrom_obj = new UnixDay($dayto_val);
             for($i=0; $i<12; $i++) {
+                $dayfrom_obj->sub_month();
+            }
+        } elseif($dayfrom_val === '48months') {
+            $dayfrom_obj = new UnixDay($dayto_val);
+            for($i=0; $i<48; $i++) {
                 $dayfrom_obj->sub_month();
             }
         } else {
