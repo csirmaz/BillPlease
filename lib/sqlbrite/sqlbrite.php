@@ -45,6 +45,7 @@ class SQLBrite {
 
    public function __construct($DB) {
       $this->DB = $DB;
+      $this->DB->busyTimeout(3000);
    }
 
    /* exec($sql [, $values])
