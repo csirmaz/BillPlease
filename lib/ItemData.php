@@ -22,20 +22,20 @@
 class ItemData {
     public $id;
 
-    protected $uday; /*< UnixDay object */
-    protected $udayto; /*< UnixDay object; $uday+$timespan */
+    public $uday; /*< UnixDay object */
+    public $udayto; /*< UnixDay object; $uday+$timespan */
 
     public $name;
-    protected $value; /*< in the object, not an integer; in the DB, multiplied by 100 */
-    protected $timespan;
-    protected $accountto;
-    protected $accountfrom;
-    protected $checked;
-    protected $istransfer;
-    protected $ctype; /*< in the object, can be 'X'; in the DB, empty string is used */
-    protected $business;
-    protected $clong; /*< comment on item */
-    protected $infuture = false; /*< Not in DB. Depends on current time. */
+    public $value; /*< in the object, not an integer; in the DB, multiplied by 100 */
+    public $timespan;
+    public $accountto;
+    public $accountfrom;
+    public $checked;
+    public $istransfer;
+    public $ctype; /*< in the object, can be 'X'; in the DB, empty string is used */
+    public $business;
+    public $clong; /*< comment on item */
+    public $infuture = false; /*< Not in DB. Depends on current time. */
 
     /** Expects an array keyed on property names and with appropriate values */
     private function __construct($attrs = array()) {
@@ -219,6 +219,15 @@ class ItemData {
             return 0;
         }
         return $this->value;
+    }
+    
+    /** Decide whether the item is genuine income */
+    public function is_income() {
+        if(function_exists('\BillPleaseExternal\is_income')) {
+            return \BillPleaseExternal\is_income($this);
+        }
+        if($this->accountfrom || $this->istransfer) { return FALSE; }
+        return ($this->value < 0);
     }
     
     public static function delete_item($DB, $id) {
