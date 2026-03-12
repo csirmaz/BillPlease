@@ -41,7 +41,7 @@ class Html {
 
         if($title === false) {
             $ut = $unixday * 24 * 60 * 60;
-            $title = date('D d M Y', $ut) . ' (Week ' . date('W', $ut) . ')';
+            $title = date('D d M Y', $ut);
         }
 
         return Application::get()->solder()->fuse('item_header', array('title' => $title, 'uday' => $unixday));

@@ -178,21 +178,28 @@ class View {
         );
         
         $extracontent = '';
+        
         if(function_exists('\BillPleaseExternal\chart_bar_hook')) {
             $raw_month_data = self::_barchart($APP, '24months', 30, $nowday, 'data', '' /*type to move*/, $smoothing_sigma);
-            $extracontent = \BillPleaseExternal\chart_bar_hook($DB, $nowday, $raw_month_data, $smoothing_sigma);
+            $extracontent .= \BillPleaseExternal\chart_bar_hook($DB, $nowday, $raw_month_data, $smoothing_sigma);
+        }
+        
+        if($APP->debug()) {
+            $extracontent .= '<hr><pre>';
+            foreach($data['logs'] as $l) { $extracontent .= htmlspecialchars($l) . "\n"; }
+            $extracontent .= '</pre>';
         }
         
         print $APP->solder()->fuse(
             'chart_bar_page',
             array(
                 'title' => Texts::systitle(),
-                '$bycategory' => $data[0],
-                '$incomeexpense' => $data[1],
-                '$colors' => implode(',', $data[2]),
+                '$bycategory' => $data['data_by_type'],
+                '$incomeexpense' => $data['data_by_ie'],
+                '$colors' => implode(',', $data['colors']),
                 'intv' => ($step == 30 ? 'monthly' : $step . '-day'),
                 '$extracontent' => $extracontent,
-                '$controls' => $data[3],
+                '$controls' => $data['controls'],
                 'smoothing' => $smoothing_sigma
             )
         );
@@ -281,8 +288,6 @@ class View {
         
         while($curday_obj->lt($dayto_obj)) {
             
-            $LOGS[] = "LOOP: CURDAY={$curday_obj->simple_string()}";
-
             // Increase date & get limits for current period
 
             $curday_str = $curday_obj->simple_string();
@@ -298,6 +303,7 @@ class View {
             $cur_to_str = (new UnixDay($cur_to_val))->simple_string();
 
             // Calculate sums
+            $LOGS[] = "LOOP: CURDAY={$curday_obj->simple_string()} (timed)";
             $TYP->sum($cur_from_val, $cur_to_val, true /* get timed sum */, $debug);
             
             if($debug) {
@@ -332,7 +338,10 @@ class View {
             );
             
             // Also calculate non-timed sums
+            $LOGS[] = "LOOP: CURDAY={$curday_obj->simple_string()} (non-timed)";
             $TYP->sum($cur_from_val, $cur_to_val, false /* get non-timed sum */, $debug);
+            // TODO import logs like above
+            
             // Store income-expense data
             $outdata['_RAW_INCOME']['values'][] = $TYP->get_gensums_corrected()['+'];
             $outdata['_RAW_EXPENSE']['values'][] = $TYP->get_gensums_corrected()['-'];
@@ -358,9 +367,7 @@ class View {
             }
         }
 
-        //TODO return LOGS
-
-        if($format == 'data') { return $outdata; }
+        if($format == 'data') { return $outdata; } // no logs returned here
 
         // $format == 'graph'
 
@@ -391,7 +398,15 @@ class View {
             $databytype .= "]";
         }
         
-        return [$databytype, $databyie, $colors, $controls];
+        $ret = [
+            'data_by_type' => $databytype,
+            'data_by_ie' => $databyie,
+            'colors' => $colors,
+            'controls' => $controls,
+            'logs' => $LOGS
+        ];
+        
+        return $ret;
     }
 
 }

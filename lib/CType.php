@@ -61,22 +61,31 @@ class CType {
       
       Item::period_sum($this->DB, $dayfrom, $dayto, $timed, $debug,
          function($item, $v, $debug, $log, $log_header) {
-            if($debug) {
-               if(isset($this->logs[$item->get_ctype()])) {
-                  $this->logs[$item->get_ctype()][] = $log;
-                } else {
-                  $this->logs[$item->get_ctype()] = [$log_header, $log];
-               }
-            }
 
             if($item->get_ctype() != 'EXC') { // exclude this type
                if($debug) { $this->item_ids[] = $item->id; }
                $this->gensums['T'] += $v;
                if ($item->is_income()) {
                   $this->gensums['+'] -= $v;
+                  
+                  if($debug) {
+                     if(isset($this->logs['_INCOME_'])) {
+                        $this->logs['_INCOME_'][] = $log;
+                     } else {
+                        $this->logs['_INCOME_'] = [$log_header, $log];
+                     }
+                  }
                } else {
                   $this->gensums['-'] += $v;
                   $this->sums[$item->get_ctype()] += $v;
+                  
+                  if($debug) {
+                     if(isset($this->logs[$item->get_ctype()])) {
+                        $this->logs[$item->get_ctype()][] = $log;
+                     } else {
+                        $this->logs[$item->get_ctype()] = [$log_header, $log];
+                     }
+                  }
                }
             }
          }
