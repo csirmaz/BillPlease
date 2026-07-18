@@ -165,7 +165,8 @@ class View {
         $DB = $APP->db();
         $nowday = $APP->nowday()->ud();
         $step = 30;
-        
+        $category_trend_smoothing = 2; // months; fixed smoothing for the non-stacked per-category trend chart
+
         $data = self::_barchart(
             $APP,
             '24months', // org: dayfrom ($DB->querysingle('select min(unixday) from costs') + 0),
@@ -176,7 +177,10 @@ class View {
             $smoothing_sigma,
             $APP->debug()
         );
-        
+
+        // Non-stacked per-category trend: same series, always smoothed to reveal per-category changes
+        $data_trend = self::_barchart($APP, '24months', $step, $nowday, 'graph', $type_to_move, $category_trend_smoothing);
+
         $extracontent = '';
         
         if(function_exists('\BillPleaseExternal\chart_bar_hook')) {
@@ -195,12 +199,14 @@ class View {
             array(
                 'title' => Texts::systitle(),
                 '$bycategory' => $data['data_by_type'],
+                '$bycategorytrend' => $data_trend['data_by_type'],
                 '$incomeexpense' => $data['data_by_ie'],
                 '$colors' => implode(',', $data['colors']),
                 'intv' => ($step == 30 ? 'monthly' : $step . '-day'),
                 '$extracontent' => $extracontent,
                 '$controls' => $data['controls'],
-                'smoothing' => $smoothing_sigma
+                'smoothing' => $smoothing_sigma,
+                'trendsmoothing' => $category_trend_smoothing
             )
         );
     }
