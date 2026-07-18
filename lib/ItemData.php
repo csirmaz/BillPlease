@@ -212,13 +212,12 @@ class ItemData {
 
     public function set_account_to($a) { $this->accountto = $a; return $this; }
 
-    /** The raw (non-timed) value that is 0 if this is a transfer */
+    /** The raw (non-timed) value, converted by the account rate, that is 0 if this is a transfer */
     public function realvalue() {
-        // TODO rate
         if($this->accountfrom || $this->istransfer) {
             return 0;
         }
-        return $this->value;
+        return $this->value * Application::get()->rates()->get($this->accountto);
     }
     
     /** Decide whether the item is genuine income */

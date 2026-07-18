@@ -78,6 +78,10 @@ class Application {
         return $this->lock;
     }
 
+    public function rates() {
+        return $this->rates;
+    }
+
     public function first_checked() {
         return $this->first_checked;
     }
