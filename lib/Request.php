@@ -29,7 +29,7 @@ class Request {
         $this->view = self::get_value('view', true);
         $this->action = self::get_value('action', true);
 
-        $this->storage = json_decode($_COOKIE['storage'], true);
+        $this->storage = (isset($_COOKIE['storage']) ? json_decode($_COOKIE['storage'], true) : null);
     }
    
    // Possible values: list

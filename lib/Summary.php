@@ -125,7 +125,7 @@ EOQ
                 $SummaryColumn .= $SLD->fuse('summary_multiacc', array(
                     'names' => substr($sumacc, 1),
                     '$sum' => printsum($part),
-                    'ratio' => floor($part/$allsum*100+.5)
+                    'ratio' => ($allsum ? floor($part/$allsum*100+.5) : 0)
                 ));
                
             } else { // a specific account

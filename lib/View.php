@@ -26,7 +26,7 @@ class View {
         if($success) {
             print '{"success":true}';
         } else {
-            print Application::get()->solder()->fuse('json_error', array('msg' => $e->getMessage()));
+            print Application::get()->solder()->fuse('json_error', array('msg' => $exception->getMessage()));
         }
     }
 

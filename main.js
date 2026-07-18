@@ -14,8 +14,8 @@ BP = {
         if(v.match(/^\-?[\d\.]+$/)) { // returns null?
             var vv = v.match(/\./g);
             if((!vv) || vv.length<=1) {
-                n = parseFloat(v);
-                if(n === false) {
+                var n = parseFloat(v);
+                if(isNaN(n)) {
                     alert(msg + ' is not a number');
                     return false;
                 }
